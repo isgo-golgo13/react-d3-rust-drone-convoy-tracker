@@ -117,3 +117,220 @@ make docker-status
 # View logs
 make docker-logs
 ```
+
+
+### Test without (Rust) Server-Side
+```shell
+cd drone-convoy-sortie
+npm run dev
+# Shows 🟡 SIM - works exactly as before
+```
+
+### Test with (Rust) Server-Side
+```shell
+# Terminal 1
+make dev-infra
+
+# Terminal 2  
+cd drone-convoy-tracking-server && cargo run --bin drone-api
+
+# Terminal 3
+cd drone-convoy-sortie && npm run dev
+# Shows 🟢 LIVE - real-time updates from Rust
+```
+
+
+
+# Frontend-Backend Integration v2
+
+Drop-in integration for connecting your React frontend to the Rust backend.
+
+## Files
+
+| File | Copy To |
+|------|---------|
+| `useBackendConnection.js` | `src/hooks/useBackendConnection.js` |
+| `ConnectionStatus.jsx` | `src/components/ConnectionStatus.jsx` |
+| `App.jsx` | Replace `src/App.jsx` |
+| `.env.example` | Copy to `.env.local` in `drone-convoy-sortie/` |
+
+## Quick Install
+
+```bash
+cd drone-convoy-sortie
+
+# Copy hook
+cp /path/to/useBackendConnection.js src/hooks/
+
+# Copy component
+cp /path/to/ConnectionStatus.jsx src/components/
+
+# Replace App.jsx (backup first!)
+cp src/App.jsx src/App.jsx.backup
+cp /path/to/App.jsx src/App.jsx
+
+# Create env file
+cp /path/to/.env.example .env.local
+```
+
+## What Changes
+
+### Before (Original App.jsx)
+```jsx
+// Local state + local simulation
+const [drones, setDrones] = useState(initializeDrones());
+const [isSimulating, setIsSimulating] = useState(false);
+
+useEffect(() => {
+  // Manual simulation loop
+  setInterval(() => { ... }, 100);
+}, [isSimulating]);
+```
+
+### After (New App.jsx)
+```jsx
+// Backend connection with automatic fallback
+const {
+  drones,                    // From backend OR simulation
+  isSimulating,              // Works same as before
+  simulationSpeed,           // Works same as before
+  mode,                      // NEW: 'live' | 'simulation'
+  isConnected,               // NEW: WebSocket status
+  switchToLive,              // NEW: Connect to backend
+  switchToSimulation,        // NEW: Use local simulation
+} = useBackendConnection();
+```
+
+## How It Works
+
+```
+App starts
+    │
+    ▼
+Check backend health (GET /health)
+    │
+    ├── Backend OK ──────────────────────┐
+    │                                       ▼
+    │                              Fetch drones from API
+    │                              Connect WebSocket
+    │                              Mode: 🟢 LIVE
+    │                                       │
+    │                              Real-time updates via WS
+    │
+    └── [X] Backend unavailable ────────────┐
+                                           ▼
+                                  Use INITIAL_DRONES from seedData
+                                  Start local simulation
+                                  Mode: 🟡 SIMULATION
+                                           │
+                                  Same behavior as before
+```
+
+## UI Changes
+
+New connection status indicator in header:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ DRONE CONVOY SORTIE          [🟢 LIVE][WS:ON][LIVE][SIM] ● ... │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+- **🟢 LIVE** - Connected to Rust backend, receiving real-time updates
+- **🟡 SIM** - Using local simulation (backend unavailable)
+- **WS: ON/OFF** - WebSocket connection status
+- **[LIVE]** button - Switch to backend mode
+- **[SIM]** button - Switch to simulation mode
+
+## Testing
+
+### Test Simulation Mode (No Backend)
+```bash
+cd drone-convoy-sortie
+npm run dev
+# Open http://localhost:5173
+# Should show 🟡 SIM mode
+# Drones should animate as before
+```
+
+### Test Live Mode (With Backend)
+```bash
+# Terminal 1: Start infrastructure
+cd react-d3-drone-convoy-dash
+make dev-infra
+
+# Terminal 2: Start Rust backend
+cd drone-convoy-tracking-server
+cargo run --bin drone-api
+
+# Terminal 3: Start React frontend
+cd drone-convoy-sortie
+npm run dev
+
+# Open http://localhost:5173
+# Should show 🟢 LIVE mode
+# Drones receive real-time updates from backend
+```
+
+## Component Compatibility
+
+The new hook provides the **exact same interface** as before:
+
+| Property/Method | Type | Same as Before |
+|-----------------|------|----------------|
+| `drones` | Array | ✅ Same shape |
+| `isSimulating` | boolean | ✅ Same |
+| `simulationSpeed` | number | ✅ Same |
+| `startSimulation` | function | ✅ Same |
+| `stopSimulation` | function | ✅ Same |
+| `toggleSimulation` | function | ✅ Same |
+| `resetSimulation` | function | ✅ Same |
+| `setSimulationSpeed` | function | ✅ Same |
+
+New additions:
+- `mode` - Connection mode ('live', 'simulation', 'connecting')
+- `isConnected` - WebSocket connection status
+- `error` - Error message if any
+- `switchToLive` - Connect to backend
+- `switchToSimulation` - Use local simulation
+
+## Drone Data Shape
+
+Same format your components already expect:
+
+```javascript
+{
+  id: 'REAPER-01',
+  callsign: 'Predator Alpha',
+  currentWaypoint: 2,
+  progress: 0.45,
+  status: 'online',      // 'online' | 'offline' | 'warning'
+  battery: 87,
+  fuel: 92,
+  altitude: 2500,
+  speed: 135,
+  systemHealth: 98,
+  armament: ['Hellfire AGM-114', 'GBU-12'],
+  lastUpdate: Date,
+  lat: 34.5693,          // For map positioning
+  lng: 69.2215,
+}
+```
+
+## Troubleshooting
+
+### Stuck on "CONNECTING"
+- Check backend is running: `curl http://localhost:3000/health`
+- Check `.env.local` has correct URLs
+
+### Always shows "SIM" even with backend running
+- Check CORS on backend allows `http://localhost:5173`
+- Check browser console for errors
+
+### WebSocket disconnects frequently
+- Backend may be crashing - check logs: `cargo run --bin drone-api`
+- Network issues - check firewall isn't blocking port 9090
+
+### Drones don't move in LIVE mode
+- Backend simulation runs by default
+- Check WebSocket messages in DevTools → Network → WS tab
