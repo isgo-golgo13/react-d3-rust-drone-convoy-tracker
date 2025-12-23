@@ -10,7 +10,7 @@ This is Part 1 of the Rust backend for the Drone Convoy Tracking System. It cont
 - **DB Crate**: ScyllaDB integration for persistence
 - **Infrastructure**: Docker Compose, Makefile, monitoring configs
 
-## 📦 Contents
+## Contents
 
 ```
 drone-convoy-tracking-server/
@@ -50,13 +50,13 @@ drone-convoy-tracking-server/
         └── provisioning/      # Grafana setup
 ```
 
-## 🔧 Part 2 Will Include
+## Part 2 Will Include
 
 - `drone-api`: Axum REST API server
 - `drone-websocket`: Real-time WebSocket server
 - `drone-telemetry`: Prometheus metrics
 
-## 🔧 Part 3 Will Include
+## Part 3 Will Include
 
 - `drone-p2p`: libp2p mesh networking
 - `drone-tracker`: Main tracking orchestration

@@ -9,7 +9,7 @@ This is the **final part** of the Rust backend. It contains:
 - **Grafana Dashboard**: Complete monitoring dashboard
 - **README.md**: Full project documentation
 
-## 📦 Contents
+## Contents
 
 ```
 crates/
@@ -37,7 +37,7 @@ monitoring/
 README.md                          # Complete project documentation
 ```
 
-## 🔧 Merge Instructions
+## Merge Instructions
 
 After downloading, merge into your repo:
 
@@ -61,7 +61,7 @@ mv drone-convoy-tracking-server/README.md .
 rm -rf drone-convoy-tracking-server
 ```
 
-## ✅ Complete Project Checklist
+## Complete Project Checklist
 
 After merging all 3 parts, verify you have:
 
@@ -90,7 +90,7 @@ drone-convoy-tracking-server/
             └── drone-convoy.json  ✓ Part 3
 ```
 
-## 🚀 Run the Complete System
+## Run the Complete System
 
 ```bash
 cd drone-convoy-tracking-server
@@ -116,7 +116,7 @@ make docker-logs
 | **Prometheus** | http://localhost:9091 |
 | **Jaeger** | http://localhost:16686 |
 
-## 🎯 What Each Crate Does
+## What Each Crate Does
 
 | Crate | Purpose |
 |-------|---------|
@@ -129,9 +129,9 @@ make docker-logs
 | `drone-p2p` | libp2p mesh networking |
 | `drone-tracker` | Main orchestration & convoy management |
 
-## ⚠️ Frontend Integration Note
+## Frontend Integration Note
 
-Your existing frontend (`drone-convoy-sortie`) should continue working as-is!
+The front-end is not affected after the additions of the Rust server side code.
 
 To connect it to the real backend (instead of simulation):
 1. The frontend already uses a simulation hook
@@ -140,12 +140,11 @@ To connect it to the real backend (instead of simulation):
 
 The backend includes its own simulation that broadcasts real events via WebSocket.
 
-## 🎉 You're Done!
+## Complete System
 
-You now have a complete full-stack drone tracking system:
+The complete full-stack drone tracking system:
 - **React + D3.js + Google Maps** frontend
 - **Rust + Axum + OpenCV** backend
 - **ScyllaDB + Redis** persistence
 - **Prometheus + Grafana** monitoring
 
-This is a portfolio-grade project demonstrating enterprise-level engineering! 🔥

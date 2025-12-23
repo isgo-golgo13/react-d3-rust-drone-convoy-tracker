@@ -8,7 +8,7 @@ This is Part 2 of the Rust backend. It contains the API server, WebSocket server
 - **drone-websocket**: Real-time WebSocket server for React frontend
 - **drone-telemetry**: Prometheus metrics exporter
 
-## 📦 Contents
+## Contents
 
 ```
 crates/
@@ -35,7 +35,7 @@ crates/
         └── lib.rs             # Prometheus metrics collector
 ```
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Health & Status
 - `GET /health` - Health check
@@ -69,7 +69,7 @@ crates/
 ### State
 - `GET /api/v1/state` - Full state snapshot for frontend
 
-## 🔌 WebSocket Protocol
+## WebSocket Protocol
 
 Connect to `ws://localhost:9090` to receive real-time updates.
 
@@ -101,7 +101,7 @@ Connect to `ws://localhost:9090` to receive real-time updates.
 }
 ```
 
-## 📊 Prometheus Metrics
+## Prometheus Metrics
 
 Available at `/metrics`:
 - `drone_convoy_drones_total` - Total drone count
@@ -110,7 +110,7 @@ Available at `/metrics`:
 - `drone_convoy_cv_tracks_active` - Active CV tracks
 - `drone_convoy_api_requests_total` - API request counts
 
-## 🔧 Part 3 Will Include
+## Part 3 Will Include
 
 - `drone-p2p`: libp2p mesh networking between drones
 - `drone-tracker`: Main tracking orchestration logic

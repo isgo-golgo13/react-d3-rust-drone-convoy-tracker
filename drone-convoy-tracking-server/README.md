@@ -7,7 +7,7 @@ A full-stack tactical drone convoy management system featuring a React + D3.js +
 ### Prerequisites
 - Node.js 18+ and npm
 - Rust 1.75+ (for local development)
-- Docker & Docker Compose
+- Docker and Docker Compose
 - Google Maps API Key
 
 ### Option 1: Full Stack with Docker Compose (Recommended)
@@ -48,7 +48,7 @@ make dev-backend    # Start Rust API server
 # API at http://localhost:3000, WebSocket at ws://localhost:9090
 ```
 
-## 🌐 Service URLs
+## Service URLs
 
 | Service | URL | Description |
 |---------|-----|-------------|
@@ -59,27 +59,27 @@ make dev-backend    # Start Rust API server
 | Prometheus | http://localhost:9091 | Metrics |
 | Jaeger | http://localhost:16686 | Tracing |
 
-## 🎯 Features
+## Features
 
 ### Frontend
-- 🗺️ Google Maps satellite view of Afghanistan convoy route
-- 🚁 12 military REAPER drones with real-time tracking
-- 📍 12 strategic waypoints (Base Alpha → Terminal Lima)
-- 📊 Live telemetry: battery, fuel, altitude, speed, heading
-- 🎮 Neumorphic control panel with military aesthetics
-- 🔴 Glitch effects and tactical styling
+- Google Maps satellite view of Afghanistan convoy route
+- 12 military REAPER drones with real-time tracking
+- 12 strategic waypoints (Base Alpha → Terminal Lima)
+- Live telemetry: battery, fuel, altitude, speed, heading
+- Neumorphic control panel with military aesthetics
+- Glitch effects and tactical styling
 
-### Backend  
-- 🦀 Rust microservices with Axum REST API
-- 🔌 WebSocket streaming for real-time updates
-- 👁️ OpenCV red halo detection with Kalman filtering
-- 🗄️ ScyllaDB 3-node cluster for time-series data
-- 📊 Prometheus metrics + Grafana dashboards
-- 🌐 libp2p mesh networking (optional)
+### Server-Side (Rust)  
+- Rust microservices with Axum REST API
+- WebSocket streaming for real-time updates
+- OpenCV red halo detection with Kalman filtering
+- ScyllaDB 3-node cluster for time-series data
+- Prometheus metrics + Grafana dashboards
+- libp2p mesh networking (optional)
 
-## 📡 Connecting Frontend to Backend
+## Connecting Frontend to Server-Side
 
-The backend broadcasts drone updates via WebSocket. Connect your React frontend:
+The server-side broadcasts drone updates through WebSocket. Connect your React frontend:
 
 ```javascript
 // In your React component
@@ -90,7 +90,7 @@ useEffect(() => {
     const msg = JSON.parse(event.data);
     if (msg.type === 'Event') {
       const { event_type, payload } = msg.payload;
-      // Handle: DRONE_POSITION_UPDATED, WAYPOINT_REACHED, etc.
+      // Handle: DRONE_POSITION_UPDATED, WAYPOINT_REACHED, ...
     }
   };
   
@@ -98,7 +98,7 @@ useEffect(() => {
 }, []);
 ```
 
-## 🛠️ Make Commands
+## Make Commands
 
 ```bash
 make build          # Build frontend + backend
@@ -110,10 +110,10 @@ make lint           # Lint code
 make db-shell       # Open ScyllaDB CQL shell
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-react-d3-drone-convoy-dash/
+react-d3-drone-convoy-tracker/
 ├── drone-convoy-sortie/           # React Frontend
 │   ├── src/components/            # TacticalMap, DroneStatus, etc.
 │   └── package.json
@@ -132,6 +132,6 @@ react-d3-drone-convoy-dash/
         └── drone-tracker/         # Orchestration
 ```
 
-## 📄 License
+## License
 
 MIT

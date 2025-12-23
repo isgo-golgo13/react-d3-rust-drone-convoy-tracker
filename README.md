@@ -49,6 +49,29 @@ uuid = { version = "1.0", features = ["v4"] }
 - GPS coordinate mapping to pixel coordinates
 
 
+## Project Structure
+
+```
+react-d3-drone-convoy-tracker/
+├── drone-convoy-sortie/           # React Frontend
+│   ├── src/components/            # TacticalMap, DroneStatus, etc.
+│   └── package.json
+└── drone-convoy-tracking-server/  # Rust Backend
+    ├── Cargo.toml                 # Workspace
+    ├── docker-compose.yaml
+    ├── Makefile
+    └── crates/
+        ├── drone-core/            # Shared models
+        ├── drone-cv/              # OpenCV tracking
+        ├── drone-db/              # ScyllaDB
+        ├── drone-api/             # REST API
+        ├── drone-websocket/       # Real-time
+        ├── drone-telemetry/       # Metrics
+        ├── drone-p2p/             # Mesh network
+        └── drone-tracker/         # Orchestration
+```
+
+
 
 ## Creating the Front-End React Project
 
