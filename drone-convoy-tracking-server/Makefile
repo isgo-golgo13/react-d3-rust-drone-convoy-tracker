@@ -19,22 +19,22 @@ all: build
 # ============================================================================
 
 build: backend frontend
-	@echo "Full stack build complete"
+	@echo "✅ Full stack build complete"
 
 backend:
-	@echo "Building Rust backend..."
+	@echo "🦀 Building Rust backend..."
 	cd $(BACKEND_DIR) && $(CARGO) build --workspace --release
-	@echo "Rust backend built"
+	@echo "✅ Rust backend built"
 
 backend-debug:
-	@echo "Building Rust backend (debug)..."
+	@echo "🦀 Building Rust backend (debug)..."
 	cd $(BACKEND_DIR) && $(CARGO) build --workspace
-	@echo "Rust backend built (debug)"
+	@echo "✅ Rust backend built (debug)"
 
 frontend:
-	@echo "Building React frontend..."
+	@echo "⚛️  Building React frontend..."
 	cd $(FRONTEND_DIR) && $(NPM) install && $(NPM) run build
-	@echo "React frontend built"
+	@echo "✅ React frontend built"
 
 # ============================================================================
 # DEVELOPMENT TARGETS
@@ -45,11 +45,11 @@ dev: docker-deps
 	@$(MAKE) -j2 dev-backend dev-frontend
 
 dev-backend:
-	@echo "Starting Rust backend in dev mode..."
+	@echo "🦀 Starting Rust backend in dev mode..."
 	cd $(BACKEND_DIR) && RUST_LOG=debug $(CARGO) run --bin drone-api
 
 dev-frontend:
-	@echo "Starting React frontend in dev mode..."
+	@echo "⚛️  Starting React frontend in dev mode..."
 	cd $(FRONTEND_DIR) && $(NPM) run dev
 
 # ============================================================================
@@ -57,32 +57,32 @@ dev-frontend:
 # ============================================================================
 
 docker-build:
-	@echo "Building Docker images..."
+	@echo "🐳 Building Docker images..."
 	$(DOCKER_COMPOSE) build
 
 docker-up: docker-build
-	@echo "Starting all services..."
+	@echo "🐳 Starting all services..."
 	$(DOCKER_COMPOSE) up -d
-	@echo "Waiting for ScyllaDB to be ready..."
+	@echo "⏳ Waiting for ScyllaDB to be ready..."
 	@sleep 30
-	@echo "Initializing database schema..."
+	@echo "📊 Initializing database schema..."
 	$(DOCKER_COMPOSE) exec -T scylla-node1 cqlsh -f /docker-entrypoint-initdb.d/schema.cql || true
-	@echo "All services running"
+	@echo "✅ All services running"
 	@$(MAKE) docker-status
 
 docker-down:
-	@echo "Stopping all services..."
+	@echo "🐳 Stopping all services..."
 	$(DOCKER_COMPOSE) down
 
 docker-clean:
-	@echo "Removing all containers, volumes, and images..."
+	@echo "🐳 Removing all containers, volumes, and images..."
 	$(DOCKER_COMPOSE) down -v --rmi all
 
 docker-logs:
 	$(DOCKER_COMPOSE) logs -f
 
 docker-status:
-	@echo "Service Status:"
+	@echo "📊 Service Status:"
 	@echo "================================================"
 	@$(DOCKER_COMPOSE) ps
 	@echo ""
@@ -97,29 +97,29 @@ docker-status:
 	@echo "================================================"
 
 docker-deps:
-	@echo "Starting infrastructure dependencies..."
+	@echo "🐳 Starting infrastructure dependencies..."
 	$(DOCKER_COMPOSE) up -d scylla-node1 scylla-node2 scylla-node3 redis prometheus grafana jaeger
-	@echo "Waiting for ScyllaDB cluster to form..."
+	@echo "⏳ Waiting for ScyllaDB cluster to form..."
 	@sleep 45
-	@echo "Dependencies ready"
+	@echo "✅ Dependencies ready"
 
 # ============================================================================
 # TEST TARGETS
 # ============================================================================
 
 test: test-backend test-frontend
-	@echo "All tests passed"
+	@echo "✅ All tests passed"
 
 test-backend:
-	@echo "Running Rust tests..."
+	@echo "🧪 Running Rust tests..."
 	cd $(BACKEND_DIR) && $(CARGO) test --workspace
 
 test-frontend:
-	@echo "Running React tests..."
+	@echo "🧪 Running React tests..."
 	cd $(FRONTEND_DIR) && $(NPM) test -- --passWithNoTests
 
 bench:
-	@echo "Running benchmarks..."
+	@echo "📊 Running benchmarks..."
 	cd $(BACKEND_DIR) && $(CARGO) bench --workspace
 
 # ============================================================================
@@ -127,10 +127,10 @@ bench:
 # ============================================================================
 
 lint: lint-backend lint-frontend
-	@echo "Linting complete"
+	@echo "✅ Linting complete"
 
 lint-backend:
-	@echo "Linting Rust code..."
+	@echo "🔍 Linting Rust code..."
 	cd $(BACKEND_DIR) && $(CARGO) clippy --workspace -- -D warnings
 
 lint-frontend:
@@ -138,40 +138,40 @@ lint-frontend:
 	cd $(FRONTEND_DIR) && $(NPM) run lint
 
 format: format-backend format-frontend
-	@echo "Formatting complete"
+	@echo "✅ Formatting complete"
 
 format-backend:
-	@echo "Formatting Rust code..."
+	@echo "🎨 Formatting Rust code..."
 	cd $(BACKEND_DIR) && $(CARGO) fmt --all
 
 format-frontend:
-	@echo "Formatting React code..."
+	@echo "🎨 Formatting React code..."
 	cd $(FRONTEND_DIR) && $(NPM) run format || true
 
 check:
-	@echo "Running all checks..."
+	@echo "🔎 Running all checks..."
 	cd $(BACKEND_DIR) && $(CARGO) check --workspace
 	cd $(BACKEND_DIR) && $(CARGO) clippy --workspace -- -D warnings
 	cd $(BACKEND_DIR) && $(CARGO) fmt --all -- --check
-	@echo "All checks passed"
+	@echo "✅ All checks passed"
 
 # ============================================================================
 # UTILITY TARGETS
 # ============================================================================
 
 clean:
-	@echo "Cleaning build artifacts..."
+	@echo "🧹 Cleaning build artifacts..."
 	cd $(BACKEND_DIR) && $(CARGO) clean
 	cd $(FRONTEND_DIR) && rm -rf node_modules dist
-	@echo "Clean complete"
+	@echo "✅ Clean complete"
 
 install-deps:
-	@echo "Installing dependencies..."
+	@echo "📦 Installing dependencies..."
 	@echo "Installing Rust dependencies..."
 	cd $(BACKEND_DIR) && $(CARGO) fetch
 	@echo "Installing Node.js dependencies..."
 	cd $(FRONTEND_DIR) && $(NPM) install
-	@echo "Dependencies installed"
+	@echo "✅ Dependencies installed"
 
 # Database utilities
 db-shell:
@@ -222,7 +222,7 @@ help:
 	@echo "  make format         - Format all code"
 	@echo "  make check          - Run all checks (clippy, fmt, etc.)"
 	@echo ""
-	@echo "General Service Commands:"
+	@echo "Utility Commands:"
 	@echo "  make clean          - Clean build artifacts"
 	@echo "  make install-deps   - Install all dependencies"
 	@echo "  make db-shell       - Open ScyllaDB CQL shell"

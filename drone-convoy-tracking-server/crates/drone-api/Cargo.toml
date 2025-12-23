@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 drone-core = { path = "../drone-core" }
-drone-cv = { path = "../drone-cv" }
+# drone-cv = { path = "../drone-cv" }
 drone-db = { path = "../drone-db" }
 drone-websocket = { path = "../drone-websocket" }
 drone-telemetry = { path = "../drone-telemetry" }

@@ -8,7 +8,7 @@ description = "Main tracking orchestration for drone convoy management"
 
 [dependencies]
 drone-core = { path = "../drone-core" }
-drone-cv = { path = "../drone-cv" }
+# drone-cv = { path = "../drone-cv" }
 drone-db = { path = "../drone-db" }
 drone-p2p = { path = "../drone-p2p" }
 

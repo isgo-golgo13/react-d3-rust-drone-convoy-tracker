@@ -1,8 +1,8 @@
 //! Application state management
 
 use crate::config::ApiConfig;
-use drone_core::{Drone, DroneId, Mission, MissionId};
-use drone_cv::CvEngine;
+use drone_core::{Drone, DroneId, Mission, GeoPosition, Waypoint, WaypointType};
+//use drone_cv::CvEngine;
 use drone_db::DbClient;
 use drone_websocket::WebSocketHub;
 
@@ -21,7 +21,7 @@ pub struct AppState {
     /// WebSocket hub for real-time updates
     pub ws_hub: Arc<WebSocketHub>,
     /// CV engine for tracking
-    pub cv_engine: Option<Arc<RwLock<CvEngine>>>,
+    //pub cv_engine: Option<Arc<RwLock<CvEngine>>>,
     /// In-memory drone cache
     pub drones: Arc<DashMap<DroneId, Drone>>,
     /// Active mission
@@ -34,34 +34,34 @@ impl AppState {
         // Initialize database
         let db = match DbClient::new(config.db.clone()).await {
             Ok(client) => {
-                info!("✅ Database connected");
+                info!("Database connected");
                 Some(Arc::new(client))
             }
             Err(e) => {
-                warn!("⚠️  Database connection failed: {}", e);
+                warn!("Database connection failed: {}", e);
                 None
             }
         };
 
         // Initialize CV engine
-        let cv_engine = if config.cv_enabled {
-            match CvEngine::new() {
-                Ok(engine) => {
-                    info!("✅ CV engine initialized");
-                    Some(Arc::new(RwLock::new(engine)))
-                }
-                Err(e) => {
-                    warn!("⚠️  CV engine initialization failed: {}", e);
-                    None
-                }
-            }
-        } else {
-            None
-        };
+        // let cv_engine = if config.cv_enabled {
+        //     match CvEngine::new() {
+        //         Ok(engine) => {
+        //             info!("CV engine initialized");
+        //             Some(Arc::new(RwLock::new(engine)))
+        //         }
+        //         Err(e) => {
+        //             warn!("CV engine initialization failed: {}", e);
+        //             None
+        //         }
+        //     }
+        // } else {
+        //     None
+        // };
 
         // Initialize WebSocket hub
         let ws_hub = Arc::new(WebSocketHub::new());
-        info!("✅ WebSocket hub initialized");
+        info!("WebSocket hub initialized");
 
         // Initialize drone cache with 12 REAPER drones
         let drones = Arc::new(DashMap::new());
@@ -70,7 +70,7 @@ impl AppState {
             let drone = Drone::new(id.clone(), format!("Reaper {}", i));
             drones.insert(id, drone);
         }
-        info!("✅ Initialized {} drones in cache", drones.len());
+        info!("Initialized {} drones in cache", drones.len());
 
         // Create default mission
         let mission = create_default_mission();
@@ -80,7 +80,7 @@ impl AppState {
             config,
             db,
             ws_hub,
-            cv_engine,
+            //cv_engine,
             drones,
             active_mission,
         })
@@ -88,11 +88,11 @@ impl AppState {
 
     /// Create state without database (degraded mode)
     pub async fn new_without_db(config: ApiConfig) -> anyhow::Result<Self> {
-        let cv_engine = if config.cv_enabled {
-            CvEngine::new().ok().map(|e| Arc::new(RwLock::new(e)))
-        } else {
-            None
-        };
+        // let cv_engine = if config.cv_enabled {
+        //     CvEngine::new().ok().map(|e| Arc::new(RwLock::new(e)))
+        // } else {
+        //     None
+        // };
 
         let ws_hub = Arc::new(WebSocketHub::new());
         
@@ -110,7 +110,7 @@ impl AppState {
             config,
             db: None,
             ws_hub,
-            cv_engine,
+            //cv_engine,
             drones,
             active_mission,
         })
@@ -122,9 +122,9 @@ impl AppState {
     }
 
     /// Check if CV engine is available
-    pub fn has_cv(&self) -> bool {
-        self.cv_engine.is_some()
-    }
+    // pub fn has_cv(&self) -> bool {
+    //     self.cv_engine.is_some()
+    // }
 
     /// Get drone by ID
     pub fn get_drone(&self, id: &DroneId) -> Option<Drone> {
@@ -154,8 +154,6 @@ impl AppState {
 
 /// Create default Afghanistan convoy mission
 fn create_default_mission() -> Mission {
-    use drone_core::{Waypoint, WaypointType, GeoPosition};
-
     let mut mission = Mission::new("Operation Desert Watch");
     mission.description = Some("Convoy escort mission across 12 strategic waypoints in Afghanistan".into());
 

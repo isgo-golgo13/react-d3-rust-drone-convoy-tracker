@@ -168,7 +168,8 @@ pub async fn system_status(State(state): State<AppState>) -> impl IntoResponse {
     Json(StatusResponse {
         api: "running".into(),
         database: if state.has_db() { "connected" } else { "unavailable" }.into(),
-        cv_engine: if state.has_cv() { "active" } else { "disabled" }.into(),
+        //cv_engine: if state.has_cv() { "active" } else { "disabled" }.into(),
+        cv_engine: "disabled".into(),
         websocket_clients: state.ws_client_count(),
         active_drones: state.drones.len(),
         mission_status,
@@ -196,7 +197,8 @@ drone_convoy_db_connected {}
 "#,
         state.drones.len(),
         state.ws_client_count(),
-        if state.has_cv() { 1 } else { 0 },
+        //if state.has_cv() { 1 } else { 0 },
+        0,
         if state.has_db() { 1 } else { 0 },
     );
 
@@ -364,18 +366,30 @@ pub async fn get_tracking_results(State(state): State<AppState>) -> impl IntoRes
 }
 
 /// Get tracking statistics
+// pub async fn get_tracking_stats(State(state): State<AppState>) -> impl IntoResponse {
+//     let active_tracks = state.cv_engine
+//         .as_ref()
+//         .map(|e| e.read().active_track_count())
+//         .unwrap_or(0);
+
+//     Json(TrackingStatsResponse {
+//         active_tracks,
+//         cv_enabled: state.has_cv(),
+//         frames_processed: 0,
+//     })
+// }
+/// Get tracking statistics
 pub async fn get_tracking_stats(State(state): State<AppState>) -> impl IntoResponse {
-    let active_tracks = state.cv_engine
-        .as_ref()
-        .map(|e| e.read().active_track_count())
-        .unwrap_or(0);
+    // CV disabled for macOS build
+    let active_tracks = 0;
 
     Json(TrackingStatsResponse {
         active_tracks,
-        cv_enabled: state.has_cv(),
+        cv_enabled: false,
         frames_processed: 0,
     })
 }
+
 
 // ============================================================================
 // ALERT HANDLERS

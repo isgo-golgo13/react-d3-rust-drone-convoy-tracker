@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "crates/drone-core",
-    "crates/drone-cv",
+    # "crates/drone-cv",
     "crates/drone-db",
     "crates/drone-api",
     "crates/drone-websocket",
@@ -13,7 +13,7 @@ members = [
 
 [workspace.package]
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 authors = ["Drone Convoy Team"]
 license = "MIT"
 repository = "https://github.com/isgo-golgo13/react-d3-drone-convoy-dash"
@@ -46,7 +46,7 @@ tokio-tungstenite = "0.26"
 futures-util = "0.3"
 
 # P2P networking
-libp2p = { version = "0.55", features = ["tcp", "websocket", "noise", "yamux", "gossipsub", "kad", "identify", "mdns", "tokio"] }
+libp2p = { version = "0.55", features = ["tcp", "noise", "yamux", "gossipsub", "kad", "identify", "mdns", "tokio"] }
 
 # Logging & Tracing
 tracing = "0.1"

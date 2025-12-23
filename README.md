@@ -91,3 +91,29 @@ npm run dev  # http://localhost:5173
 # Or use Docker
 make quick-start  # http://localhost:8080
 ```
+
+
+
+
+## Run the Complete System
+
+# MacOS
+brew install opencv llvm
+
+# Ubuntu/Debian  
+sudo apt-get install libopencv-dev clang libclang-dev
+
+# Or skip OpenCV for now by commenting it out in Cargo.toml
+
+```bash
+cd drone-convoy-tracking-server
+
+# Build and start everything
+make docker-up
+
+# Check status
+make docker-status
+
+# View logs
+make docker-logs
+```

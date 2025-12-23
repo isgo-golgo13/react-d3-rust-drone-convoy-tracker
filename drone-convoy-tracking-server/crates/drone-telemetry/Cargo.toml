@@ -11,8 +11,6 @@ drone-core = { path = "../drone-core" }
 
 # Metrics
 prometheus = { workspace = true }
-metrics = { workspace = true }
-metrics-exporter-prometheus = { workspace = true }
 
 # Async runtime
 tokio = { workspace = true }

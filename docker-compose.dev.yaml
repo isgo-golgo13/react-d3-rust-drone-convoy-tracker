@@ -1,0 +1,259 @@
+version: "3.9"
+
+# =============================================================================
+# DRONE CONVOY - Infrastructure Only (for Local Development)
+# =============================================================================
+#
+# Place this file at project root: react-d3-drone-convoy-dash/
+#
+# Use this when developing the Rust backend locally:
+#
+#   docker compose -f docker-compose.dev.yaml up -d       # Start infrastructure
+#   cd drone-convoy-tracking-server && cargo run          # Run Rust locally
+#   cd drone-convoy-sortie && npm run dev                 # Run React locally
+#
+# Or with frontend in Docker:
+#   docker compose -f docker-compose.dev.yaml --profile frontend up -d
+#
+# This starts only ScyllaDB, Redis, and optionally monitoring/frontend
+# while you run the Rust backend locally for faster iteration.
+#
+# =============================================================================
+
+services:
+  # ============================================================================
+  # FRONTEND DEV - Hot reload (--profile frontend)
+  # ============================================================================
+  frontend-dev:
+    image: node:20-alpine
+    container_name: drone-frontend-dev
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./drone-convoy-sortie:/app
+      - frontend_node_modules:/app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      - VITE_API_URL=http://localhost:3000
+      - VITE_WS_URL=ws://localhost:9090
+    networks:
+      - drone-network
+    profiles:
+      - frontend
+    stdin_open: true
+    tty: true
+
+  # ============================================================================
+  # SCYLLADB CLUSTER - 3 Node Configuration
+  # ============================================================================
+  scylla-node1:
+    image: scylladb/scylla:5.4
+    container_name: scylla-node1
+    command: >
+      --seeds=scylla-node1
+      --smp 2
+      --memory 1G
+      --overprovisioned 1
+      --api-address 0.0.0.0
+      --developer-mode 1
+    ports:
+      - "9042:9042"
+      - "9180:9180"
+    volumes:
+      - scylla-data1:/var/lib/scylla
+    networks:
+      - drone-network
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe cluster' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+    restart: unless-stopped
+
+  scylla-node2:
+    image: scylladb/scylla:5.4
+    container_name: scylla-node2
+    command: >
+      --seeds=scylla-node1
+      --smp 2
+      --memory 1G
+      --overprovisioned 1
+      --api-address 0.0.0.0
+      --developer-mode 1
+    volumes:
+      - scylla-data2:/var/lib/scylla
+    networks:
+      - drone-network
+    depends_on:
+      scylla-node1:
+        condition: service_healthy
+    restart: unless-stopped
+
+  scylla-node3:
+    image: scylladb/scylla:5.4
+    container_name: scylla-node3
+    command: >
+      --seeds=scylla-node1
+      --smp 2
+      --memory 1G
+      --overprovisioned 1
+      --api-address 0.0.0.0
+      --developer-mode 1
+    volumes:
+      - scylla-data3:/var/lib/scylla
+    networks:
+      - drone-network
+    depends_on:
+      scylla-node2:
+        condition: service_started
+    restart: unless-stopped
+
+  # ============================================================================
+  # SCYLLA SCHEMA INITIALIZER
+  # ============================================================================
+  scylla-init:
+    image: scylladb/scylla:5.4
+    container_name: scylla-init
+    depends_on:
+      scylla-node1:
+        condition: service_healthy
+    volumes:
+      - ./drone-convoy-tracking-server/schema.cql:/schema.cql:ro
+    entrypoint: []
+    command: >
+      bash -c "
+        set -e
+        echo '⏳ Waiting for ScyllaDB cluster to stabilize...'
+        sleep 10
+        
+        echo '🔍 Checking cluster status...'
+        until cqlsh scylla-node1 -e 'describe cluster' 2>/dev/null; do
+          echo '   Cluster not ready, retrying in 5s...'
+          sleep 5
+        done
+        
+        echo '✅ Cluster is ready!'
+        echo '📊 Loading schema from schema.cql...'
+        
+        if cqlsh scylla-node1 -f /schema.cql; then
+          echo '✅ Schema loaded successfully!'
+        else
+          echo '⚠️  Schema may already exist - continuing...'
+        fi
+        
+        echo '🎉 ScyllaDB initialization complete!'
+      "
+    networks:
+      - drone-network
+    restart: "no"
+
+  # ============================================================================
+  # REDIS
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: drone-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - drone-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # OBSERVABILITY (--profile monitoring)
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: drone-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./drone-convoy-tracking-server/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - drone-network
+    profiles:
+      - monitoring
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: drone-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./drone-convoy-tracking-server/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./drone-convoy-tracking-server/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - drone-network
+    profiles:
+      - monitoring
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    container_name: drone-jaeger
+    ports:
+      - "16686:16686"
+      - "6831:6831/udp"
+      - "14268:14268"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - drone-network
+    profiles:
+      - monitoring
+    restart: unless-stopped
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  drone-network:
+    driver: bridge
+    name: drone-convoy-net
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  scylla-data1:
+    name: drone-scylla-data1
+  scylla-data2:
+    name: drone-scylla-data2
+  scylla-data3:
+    name: drone-scylla-data3
+  redis-data:
+    name: drone-redis-data
+  prometheus-data:
+    name: drone-prometheus-data
+  grafana-data:
+    name: drone-grafana-data
+  frontend_node_modules:
+    name: drone-frontend-node-modules

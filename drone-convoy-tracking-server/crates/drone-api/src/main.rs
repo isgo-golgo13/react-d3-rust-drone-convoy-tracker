@@ -19,6 +19,8 @@ use tokio::signal;
 use tracing::{info, error, Level};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
+use drone_core::{DroneId, GeoPosition, Telemetry, Event};
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize logging
@@ -29,44 +31,44 @@ async fn main() -> anyhow::Result<()> {
 
     // Load configuration
     let config = ApiConfig::from_env();
-    info!("📋 Configuration loaded");
+    info!("Configuration loaded");
     info!("   API Port: {}", config.api_port);
     info!("   WebSocket Port: {}", config.ws_port);
     info!("   ScyllaDB Hosts: {:?}", config.db.hosts);
 
     // Initialize application state
-    info!("🔧 Initializing application state...");
+    info!("Initializing application state...");
     let state = match AppState::new(config.clone()).await {
         Ok(state) => {
-            info!("✅ Application state initialized");
+            info!("Application state initialized");
             state
         }
         Err(e) => {
-            error!("❌ Failed to initialize application state: {}", e);
+            error!("Failed to initialize application state: {}", e);
             // Continue without database for development
-            info!("⚠️  Running in degraded mode (no database)");
+            info!("Running in degraded mode (no database)");
             AppState::new_without_db(config.clone()).await?
         }
     };
 
     // Create router
     let app = create_router(state.clone());
-    info!("🛣️  Routes configured");
+    info!("Routes configured");
 
     // Start WebSocket server in background
     let ws_state = state.clone();
     let ws_port = config.ws_port;
     tokio::spawn(async move {
-        info!("🔌 Starting WebSocket server on port {}...", ws_port);
+        info!("Starting WebSocket server on port {}...", ws_port);
         if let Err(e) = drone_websocket::start_server(ws_state.ws_hub.clone(), ws_port).await {
             error!("WebSocket server error: {}", e);
         }
     });
 
-    // Start simulation task (generates fake drone data for demo)
+    // Start simulation task (generates fake drone data for PoC)
     let sim_state = state.clone();
     tokio::spawn(async move {
-        info!("🎮 Starting drone simulation...");
+        info!("Starting drone simulation...");
         run_simulation(sim_state).await;
     });
 
@@ -74,8 +76,8 @@ async fn main() -> anyhow::Result<()> {
     let addr = SocketAddr::from(([0, 0, 0, 0], config.api_port));
     info!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     info!("🚀 API server listening on http://{}", addr);
-    info!("🔌 WebSocket server on ws://0.0.0.0:{}", config.ws_port);
-    info!("📊 Metrics available at http://{}/metrics", addr);
+    info!("WebSocket server on ws://0.0.0.0:{}", config.ws_port);
+    info!("Metrics available at http://{}/metrics", addr);
     info!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
@@ -92,7 +94,8 @@ async fn main() -> anyhow::Result<()> {
 fn init_logging() {
     let filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| {
-            EnvFilter::new("info,drone_api=debug,drone_cv=debug,drone_websocket=debug")
+            EnvFilter::new("info,drone_api=debug,drone_websocket=debug")
+            //EnvFilter::new("info,drone_api=debug,drone_cv=debug,drone_websocket=debug")
         });
 
     tracing_subscriber::registry()

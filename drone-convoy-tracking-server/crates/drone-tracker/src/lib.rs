@@ -24,7 +24,7 @@ use drone_core::{
     Event, GeoPosition, Mission, MissionId, MissionStatus, Telemetry,
     TrackingResult, Waypoint, WaypointId,
 };
-use drone_cv::CvEngine;
+//use drone_cv::CvEngine;
 use drone_db::DbClient;
 use drone_p2p::P2pManager;
 
@@ -44,7 +44,7 @@ pub struct TrackerConfig {
     /// Waypoint arrival threshold in meters
     pub waypoint_threshold_meters: f64,
     /// Enable CV tracking
-    pub cv_enabled: bool,
+    //pub cv_enabled: bool,
     /// Enable P2P networking
     pub p2p_enabled: bool,
     /// Enable database persistence
@@ -61,7 +61,7 @@ impl Default for TrackerConfig {
         Self {
             update_interval: Duration::from_millis(100),
             waypoint_threshold_meters: 100.0,
-            cv_enabled: true,
+            //cv_enabled: true,
             p2p_enabled: false, // Disabled by default for simplicity
             db_enabled: true,
             battery_warning_threshold: 30,
@@ -80,7 +80,7 @@ pub struct DroneTracker {
     /// Active mission
     mission: Arc<RwLock<Option<Mission>>>,
     /// CV engine (optional)
-    cv_engine: Option<Arc<RwLock<CvEngine>>>,
+    //cv_engine: Option<Arc<RwLock<CvEngine>>>,
     /// Database client (optional)
     db: Option<Arc<DbClient>>,
     /// P2P manager (optional)
@@ -103,7 +103,7 @@ pub struct TrackedDrone {
     /// Progress to next waypoint (0.0 - 1.0)
     pub waypoint_progress: f64,
     /// Last CV tracking result
-    pub last_cv_result: Option<TrackingResult>,
+    //pub last_cv_result: Option<TrackingResult>,
     /// Last position update time
     pub last_update: DateTime<Utc>,
     /// Historical positions (last N)
@@ -118,7 +118,7 @@ impl TrackedDrone {
             drone,
             waypoint_index: 0,
             waypoint_progress: 0.0,
-            last_cv_result: None,
+            //last_cv_result: None,
             last_update: Utc::now(),
             position_history: Vec::with_capacity(100),
             active_alerts: Vec::new(),
@@ -148,36 +148,36 @@ impl TrackedDrone {
 impl DroneTracker {
     /// Create a new drone tracker
     pub async fn new(config: TrackerConfig) -> anyhow::Result<Self> {
-        info!("🎯 Initializing Drone Tracker...");
+        info!("Initializing Drone Tracker...");
 
         let (event_tx, _) = broadcast::channel(1024);
         let (alert_tx, _alert_rx) = mpsc::channel(256);
 
         // Initialize CV engine if enabled
-        let cv_engine = if config.cv_enabled {
-            match CvEngine::new() {
-                Ok(engine) => {
-                    info!("✅ CV engine initialized");
-                    Some(Arc::new(RwLock::new(engine)))
-                }
-                Err(e) => {
-                    warn!("⚠️ CV engine initialization failed: {}", e);
-                    None
-                }
-            }
-        } else {
-            None
-        };
+        // let cv_engine = if config.cv_enabled {
+        //     match CvEngine::new() {
+        //         Ok(engine) => {
+        //             info!("CV engine initialized");
+        //             Some(Arc::new(RwLock::new(engine)))
+        //         }
+        //         Err(e) => {
+        //             warn!("CV engine initialization failed: {}", e);
+        //             None
+        //         }
+        //     }
+        // } else {
+        //     None
+        // };
 
         // Initialize P2P if enabled
         let p2p = if config.p2p_enabled {
             match P2pManager::new(drone_p2p::P2pConfig::default()).await {
                 Ok(manager) => {
-                    info!("✅ P2P network initialized");
+                    info!("P2P network initialized");
                     Some(Arc::new(manager))
                 }
                 Err(e) => {
-                    warn!("⚠️ P2P initialization failed: {}", e);
+                    warn!("P2P initialization failed: {}", e);
                     None
                 }
             }
@@ -189,7 +189,7 @@ impl DroneTracker {
             config,
             drones: Arc::new(DashMap::new()),
             mission: Arc::new(RwLock::new(None)),
-            cv_engine,
+            //cv_engine,
             db: None, // Set via set_database
             p2p,
             event_tx,
@@ -405,7 +405,7 @@ mod tests {
     #[tokio::test]
     async fn test_tracker_creation() {
         let config = TrackerConfig {
-            cv_enabled: false,
+            //cv_enabled: false,
             p2p_enabled: false,
             db_enabled: false,
             ..Default::default()
@@ -418,7 +418,7 @@ mod tests {
     #[tokio::test]
     async fn test_drone_registration() {
         let config = TrackerConfig {
-            cv_enabled: false,
+            //cv_enabled: false,
             p2p_enabled: false,
             db_enabled: false,
             ..Default::default()
@@ -436,7 +436,7 @@ mod tests {
     #[tokio::test]
     async fn test_position_update() {
         let config = TrackerConfig {
-            cv_enabled: false,
+            //cv_enabled: false,
             p2p_enabled: false,
             db_enabled: false,
             ..Default::default()

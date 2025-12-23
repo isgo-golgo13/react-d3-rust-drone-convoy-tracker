@@ -84,7 +84,7 @@ async fn handle_connection(
     });
     
     let msg = serde_json::to_string(&initial_state)?;
-    ws_sender.send(Message::Text(msg)).await?;
+    ws_sender.send(Message::Text(msg.into())).await?;
 
     // Spawn task to handle incoming messages from client
     let hub_clone = hub.clone();
@@ -130,7 +130,7 @@ async fn handle_connection(
                         let msg = ServerMessage::Event(event);
                         match serde_json::to_string(&msg) {
                             Ok(json) => {
-                                if let Err(e) = ws_sender.send(Message::Text(json)).await {
+                                if let Err(e) = ws_sender.send(Message::Text(json.into())).await {
                                     error!("Failed to send to client {}: {}", client_id, e);
                                     break;
                                 }
