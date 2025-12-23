@@ -1,0 +1,53 @@
+# Prometheus Configuration for Drone Convoy Tracking System
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'drone-convoy'
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Rule files
+rule_files: []
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Drone API Server metrics
+  - job_name: 'drone-api'
+    static_configs:
+      - targets: ['drone-api:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # ScyllaDB cluster metrics
+  - job_name: 'scylla'
+    static_configs:
+      - targets: 
+          - 'scylla-node1:9180'
+          - 'scylla-node2:9180'
+          - 'scylla-node3:9180'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Redis metrics (if redis_exporter is enabled)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Node exporter (if enabled for host metrics)
+  - job_name: 'node'
+    static_configs:
+      - targets: []

@@ -1,0 +1,215 @@
+version: "3.9"
+
+services:
+  # ============================================================================
+  # FRONTEND - React + Vite + D3.js + Google Maps
+  # ============================================================================
+  frontend:
+    build:
+      context: ../drone-convoy-sortie
+      dockerfile: Dockerfile
+    container_name: drone-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - drone-api
+    networks:
+      - drone-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # BACKEND - Rust API Server with OpenCV
+  # ============================================================================
+  drone-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: drone-api
+    ports:
+      - "3000:3000"
+      - "9090:9090"  # WebSocket port
+    environment:
+      - RUST_LOG=info,drone_api=debug,drone_cv=debug
+      - SCYLLA_HOSTS=scylla-node1:9042,scylla-node2:9042,scylla-node3:9042
+      - REDIS_URL=redis://redis:6379
+      - API_PORT=3000
+      - WS_PORT=9090
+      - OPENCV_HALO_COLOR_R=255
+      - OPENCV_HALO_COLOR_G=0
+      - OPENCV_HALO_COLOR_B=0
+      - OPENCV_TRACKING_ENABLED=true
+    depends_on:
+      scylla-node1:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - drone-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  # ============================================================================
+  # SCYLLADB CLUSTER - 3 Node Configuration
+  # ============================================================================
+  scylla-node1:
+    image: scylladb/scylla:5.4
+    container_name: scylla-node1
+    command: --seeds=scylla-node1 --smp 2 --memory 1G --overprovisioned 1 --api-address 0.0.0.0
+    ports:
+      - "9042:9042"
+      - "9180:9180"
+    volumes:
+      - scylla-data1:/var/lib/scylla
+      - ./schema.cql:/docker-entrypoint-initdb.d/schema.cql:ro
+    networks:
+      - drone-network
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status | grep -E '^UN'"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    restart: unless-stopped
+
+  scylla-node2:
+    image: scylladb/scylla:5.4
+    container_name: scylla-node2
+    command: --seeds=scylla-node1 --smp 2 --memory 1G --overprovisioned 1 --api-address 0.0.0.0
+    volumes:
+      - scylla-data2:/var/lib/scylla
+    networks:
+      - drone-network
+    depends_on:
+      scylla-node1:
+        condition: service_healthy
+    restart: unless-stopped
+
+  scylla-node3:
+    image: scylladb/scylla:5.4
+    container_name: scylla-node3
+    command: --seeds=scylla-node1 --smp 2 --memory 1G --overprovisioned 1 --api-address 0.0.0.0
+    volumes:
+      - scylla-data3:/var/lib/scylla
+    networks:
+      - drone-network
+    depends_on:
+      scylla-node2:
+        condition: service_started
+    restart: unless-stopped
+
+  # ============================================================================
+  # REDIS - Caching and Pub/Sub
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: drone-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - drone-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # OBSERVABILITY STACK
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: drone-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.time=7d'
+    networks:
+      - drone-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: drone-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - drone-network
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    container_name: drone-jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "6831:6831/udp"  # Thrift compact
+      - "14268:14268"  # HTTP collector
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - drone-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # DEVELOPMENT UTILITIES
+  # ============================================================================
+  # Uncomment for local development with hot-reload
+  # dev-backend:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.dev
+  #   container_name: drone-api-dev
+  #   volumes:
+  #     - .:/app
+  #     - cargo-cache:/usr/local/cargo/registry
+  #   ports:
+  #     - "3000:3000"
+  #     - "9090:9090"
+  #   environment:
+  #     - RUST_LOG=debug
+  #   command: cargo watch -x 'run --bin drone-api'
+  #   networks:
+  #     - drone-network
+
+networks:
+  drone-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  scylla-data1:
+  scylla-data2:
+  scylla-data3:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+  cargo-cache:

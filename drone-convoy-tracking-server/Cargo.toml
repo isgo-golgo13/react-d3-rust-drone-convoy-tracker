@@ -1,0 +1,90 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/drone-core",
+    "crates/drone-cv",
+    "crates/drone-db",
+    "crates/drone-api",
+    "crates/drone-websocket",
+    "crates/drone-p2p",
+    "crates/drone-telemetry",
+    "crates/drone-tracker",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["Drone Convoy Team"]
+license = "MIT"
+repository = "https://github.com/isgo-golgo13/react-d3-drone-convoy-dash"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.42", features = ["full"] }
+tokio-stream = "0.1"
+tokio-util = { version = "0.7", features = ["codec"] }
+
+# Web framework (Axum)
+axum = { version = "0.8", features = ["ws", "macros"] }
+axum-extra = { version = "0.10", features = ["typed-header"] }
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip"] }
+
+# OpenCV for computer vision
+opencv = { version = "0.93", default-features = false, features = ["clang-runtime"] }
+
+# ScyllaDB driver
+scylla = { version = "0.15", features = ["ssl", "cloud"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3"
+
+# WebSocket
+tokio-tungstenite = "0.26"
+futures-util = "0.3"
+
+# P2P networking
+libp2p = { version = "0.55", features = ["tcp", "websocket", "noise", "yamux", "gossipsub", "kad", "identify", "mdns", "tokio"] }
+
+# Logging & Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Metrics
+prometheus = "0.13"
+metrics = "0.24"
+metrics-exporter-prometheus = "0.16"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# UUID & Time
+uuid = { version = "1.11", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Configuration
+config = "0.15"
+dotenvy = "0.15"
+
+# Async utilities
+async-trait = "0.1"
+futures = "0.3"
+parking_lot = "0.12"
+dashmap = "6.1"
+
+# Testing
+mockall = "0.13"
+criterion = "0.5"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

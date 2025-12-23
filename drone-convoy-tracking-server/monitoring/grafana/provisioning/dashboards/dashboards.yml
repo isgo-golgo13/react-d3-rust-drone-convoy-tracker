@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: 'Drone Convoy Dashboards'
+    orgId: 1
+    folder: 'Drone Convoy'
+    folderUid: 'drone-convoy'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

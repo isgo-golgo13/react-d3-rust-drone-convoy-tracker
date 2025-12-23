@@ -1,0 +1,38 @@
+[package]
+name = "drone-db"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "ScyllaDB integration for drone telemetry and waypoint persistence"
+
+[dependencies]
+drone-core = { path = "../drone-core" }
+
+# ScyllaDB driver
+scylla = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Time & UUID
+chrono = { workspace = true }
+uuid = { workspace = true }
+
+# Async utilities
+async-trait = { workspace = true }
+futures = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
