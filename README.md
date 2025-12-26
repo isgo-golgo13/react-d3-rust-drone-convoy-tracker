@@ -145,63 +145,10 @@ cd drone-convoy-sortie && npm run dev
 
 Drop-in integration for connecting your React frontend to the Rust backend.
 
-## Files
 
-| File | Copy To |
-|------|---------|
-| `useBackendConnection.js` | `src/hooks/useBackendConnection.js` |
-| `ConnectionStatus.jsx` | `src/components/ConnectionStatus.jsx` |
-| `App.jsx` | Replace `src/App.jsx` |
-| `.env.example` | Copy to `.env.local` in `drone-convoy-sortie/` |
 
-## Quick Install
 
-```bash
-cd drone-convoy-sortie
-
-# Copy hook
-cp /path/to/useBackendConnection.js src/hooks/
-
-# Copy component
-cp /path/to/ConnectionStatus.jsx src/components/
-
-# Replace App.jsx (backup first!)
-cp src/App.jsx src/App.jsx.backup
-cp /path/to/App.jsx src/App.jsx
-
-# Create env file
-cp /path/to/.env.example .env.local
-```
-
-## What Changes
-
-### Before (Original App.jsx)
-```jsx
-// Local state + local simulation
-const [drones, setDrones] = useState(initializeDrones());
-const [isSimulating, setIsSimulating] = useState(false);
-
-useEffect(() => {
-  // Manual simulation loop
-  setInterval(() => { ... }, 100);
-}, [isSimulating]);
-```
-
-### After (New App.jsx)
-```jsx
-// Backend connection with automatic fallback
-const {
-  drones,                    // From backend OR simulation
-  isSimulating,              // Works same as before
-  simulationSpeed,           // Works same as before
-  mode,                      // NEW: 'live' | 'simulation'
-  isConnected,               // NEW: WebSocket status
-  switchToLive,              // NEW: Connect to backend
-  switchToSimulation,        // NEW: Use local simulation
-} = useBackendConnection();
-```
-
-## How It Works
+## Functional Workflow
 
 ```
 App starts
@@ -247,6 +194,7 @@ New connection status indicator in header:
 ### Test Simulation Mode (No Backend)
 ```bash
 cd drone-convoy-sortie
+npm install
 npm run dev
 # Open http://localhost:5173
 # Should show 🟡 SIM mode

@@ -82,9 +82,13 @@ async fn main() -> anyhow::Result<()> {
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    // axum::serve(listener, app)
+    //     .with_graceful_shutdown(shutdown_signal())
+    //     .await?;
+
+    axum::serve(listener, app.into_make_service())
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     info!("🛑 Server shutdown complete");
     Ok(())
@@ -170,7 +174,7 @@ async fn run_simulation(state: AppState) {
         })
         .collect();
 
-    let mut interval = tokio::time::interval(Duration::from_millis(100));
+    let mut interval = tokio::time::interval(Duration::from_millis(500));
     let speed_multiplier = 0.001; // Adjust for demo speed
 
     loop {

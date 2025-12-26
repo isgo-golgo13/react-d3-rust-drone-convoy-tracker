@@ -125,7 +125,7 @@ export function useBackendConnection() {
    */
   const fetchDrones = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/drones`);
+      const response = await fetch(`${API_URL}/api/v1/drones`);
       if (!response.ok) throw new Error('Failed to fetch drones');
       const data = await response.json();
       
@@ -139,6 +139,7 @@ export function useBackendConnection() {
     }
   }, []);
 
+  
   /**
    * Handle WebSocket message
    */

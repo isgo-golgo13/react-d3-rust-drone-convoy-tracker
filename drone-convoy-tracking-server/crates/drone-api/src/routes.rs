@@ -41,10 +41,10 @@ pub fn create_router(state: AppState) -> Router {
         
         // Drones API
         .route("/api/v1/drones", get(handlers::list_drones))
-        .route("/api/v1/drones/:id", get(handlers::get_drone))
-        .route("/api/v1/drones/:id/telemetry", get(handlers::get_drone_telemetry))
-        .route("/api/v1/drones/:id/position", get(handlers::get_drone_position))
-        .route("/api/v1/drones/:id/command", post(handlers::send_drone_command))
+        .route("/api/v1/drones/{id}", get(handlers::get_drone))
+        .route("/api/v1/drones/{id}/telemetry", get(handlers::get_drone_telemetry))
+        .route("/api/v1/drones/{id}/position", get(handlers::get_drone_position))
+        .route("/api/v1/drones/{id}/command", post(handlers::send_drone_command))
         
         // Mission API
         .route("/api/v1/mission", get(handlers::get_mission))
@@ -60,7 +60,7 @@ pub fn create_router(state: AppState) -> Router {
         
         // Alerts API
         .route("/api/v1/alerts", get(handlers::list_alerts))
-        .route("/api/v1/alerts/:id/acknowledge", post(handlers::acknowledge_alert))
+        .route("/api/v1/alerts/{id}/acknowledge", post(handlers::acknowledge_alert))
         
         // WebSocket info
         .route("/api/v1/ws/info", get(handlers::websocket_info))
