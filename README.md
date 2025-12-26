@@ -220,20 +220,29 @@ npm run dev
 # Drones receive real-time updates from backend
 ```
 
+### Killing PID Rust Server Process (Full-Restarts)
+
+```shell
+ps aux | grep drone-api
+kill -9 <PID>
+```
+
+
+
 ## Component Compatibility
 
 The new hook provides the **exact same interface** as before:
 
 | Property/Method | Type | Same as Before |
 |-----------------|------|----------------|
-| `drones` | Array | ✅ Same shape |
-| `isSimulating` | boolean | ✅ Same |
-| `simulationSpeed` | number | ✅ Same |
-| `startSimulation` | function | ✅ Same |
-| `stopSimulation` | function | ✅ Same |
-| `toggleSimulation` | function | ✅ Same |
-| `resetSimulation` | function | ✅ Same |
-| `setSimulationSpeed` | function | ✅ Same |
+| `drones` | Array | Same shape |
+| `isSimulating` | boolean | Same |
+| `simulationSpeed` | number | Same |
+| `startSimulation` | function | Same |
+| `stopSimulation` | function | Same |
+| `toggleSimulation` | function | Same |
+| `resetSimulation` | function | Same |
+| `setSimulationSpeed` | function | Same |
 
 New additions:
 - `mode` - Connection mode ('live', 'simulation', 'connecting')

@@ -8,7 +8,7 @@ use drone_websocket::WebSocketHub;
 
 use dashmap::DashMap;
 use parking_lot::RwLock;
-use std::sync::Arc;
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use tracing::{info, warn};
 
 /// Shared application state
@@ -26,6 +26,8 @@ pub struct AppState {
     pub drones: Arc<DashMap<DroneId, Drone>>,
     /// Active mission
     pub active_mission: Arc<RwLock<Option<Mission>>>,
+    /// Simulation reset flag
+    pub reset_flag: Arc<AtomicBool>,
 }
 
 impl AppState {
@@ -75,6 +77,7 @@ impl AppState {
         // Create default mission
         let mission = create_default_mission();
         let active_mission = Arc::new(RwLock::new(Some(mission)));
+        let reset_flag = Arc::new(AtomicBool::new(false));
 
         Ok(Self {
             config,
@@ -83,6 +86,7 @@ impl AppState {
             //cv_engine,
             drones,
             active_mission,
+            reset_flag,
         })
     }
 
@@ -105,6 +109,7 @@ impl AppState {
 
         let mission = create_default_mission();
         let active_mission = Arc::new(RwLock::new(Some(mission)));
+        let reset_flag = Arc::new(AtomicBool::new(false));
 
         Ok(Self {
             config,
@@ -113,6 +118,7 @@ impl AppState {
             //cv_engine,
             drones,
             active_mission,
+            reset_flag,
         })
     }
 

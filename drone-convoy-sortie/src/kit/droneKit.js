@@ -6,6 +6,12 @@ import { WAYPOINTS } from '../data/seedData.js';
  * @returns {Object} - {lat, lng} coordinates
  */
 export const calculateDronePosition = (drone) => {
+  // Use direct lat/lng from backend if available
+  if (drone.lat && drone.lng && drone.lat !== 0) {
+    return { lat: drone.lat, lng: drone.lng };
+  }
+  
+  // Fallback: interpolate from waypoints (simulation mode)
   if (!drone || drone.currentWaypoint >= WAYPOINTS.length - 1) {
     return WAYPOINTS[WAYPOINTS.length - 1] || { lat: 0, lng: 0 };
   }
@@ -17,7 +23,6 @@ export const calculateDronePosition = (drone) => {
     return currentWP || { lat: 0, lng: 0 };
   }
 
-  // Linear interpolation between waypoints
   const lat = currentWP.lat + (nextWP.lat - currentWP.lat) * drone.progress;
   const lng = currentWP.lng + (nextWP.lng - currentWP.lng) * drone.progress;
 

@@ -148,19 +148,19 @@ async fn run_simulation(state: AppState) {
 
     // Afghanistan waypoints (same as frontend)
     let waypoints = vec![
-        ("Base Alpha", 34.5553, 69.2075),
-        ("Checkpoint Bravo", 34.6234, 69.1123),
-        ("Outpost Charlie", 34.7012, 69.0456),
-        ("Firebase Delta", 34.7891, 68.9234),
-        ("Sector Echo", 34.8567, 68.8012),
-        ("Point Foxtrot", 34.9234, 68.6789),
-        ("Zone Golf", 34.9901, 68.5567),
-        ("Camp Hotel", 35.0567, 68.4234),
-        ("Station India", 35.1234, 68.3012),
-        ("Forward Juliet", 35.1901, 68.1789),
-        ("Base Kilo", 35.2567, 68.0567),
-        ("Terminal Lima", 35.3234, 67.9234),
-    ];
+    ("Base Alpha", 34.5553, 69.2075),
+    ("Checkpoint Bravo", 34.5623, 69.2145),
+    ("Outpost Charlie", 34.5693, 69.2215),
+    ("Firebase Delta", 34.5763, 69.2285),
+    ("Sector Echo", 34.5833, 69.2355),
+    ("Point Foxtrot", 34.5903, 69.2425),
+    ("Zone Golf", 34.5973, 69.2495),
+    ("Camp Hotel", 34.6043, 69.2565),
+    ("Station India", 34.6113, 69.2635),
+    ("Forward Juliet", 34.6183, 69.2705),
+    ("Base Kilo", 34.6253, 69.2775),
+    ("Terminal Lima", 34.6323, 69.2845),
+];
 
     // Initialize 12 drones
     let mut drones: Vec<SimDrone> = (1..=12)
@@ -175,10 +175,22 @@ async fn run_simulation(state: AppState) {
         .collect();
 
     let mut interval = tokio::time::interval(Duration::from_millis(500));
-    let speed_multiplier = 0.001; // Adjust for demo speed
+    let speed_multiplier = 0.005; // Adjust for demo speed
 
     loop {
         interval.tick().await;
+
+        // Check for reset
+        if state.reset_flag.load(std::sync::atomic::Ordering::SeqCst) {
+            info!("Resetting simulation to start...");
+            for drone in &mut drones {
+                drone.waypoint_index = 0;
+                drone.progress = 0.0;
+                drone.battery = 100;
+                drone.fuel = 100;
+            }
+            state.reset_flag.store(false, std::sync::atomic::Ordering::SeqCst);
+        }
 
         for drone in &mut drones {
             // Update progress

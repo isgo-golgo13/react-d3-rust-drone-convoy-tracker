@@ -289,6 +289,24 @@ pub async fn send_drone_command(
     })))
 }
 
+/// Reset simulation to starting positions
+/// Reset simulation to starting positions
+pub async fn reset_simulation(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    use std::sync::atomic::Ordering;
+    
+    // Set reset flag - simulation loop will check this
+    state.reset_flag.store(true, Ordering::SeqCst);
+    
+    info!("Simulation reset requested");
+    
+    Json(serde_json::json!({
+        "status": "reset",
+        "message": "Simulation reset to starting positions"
+    }))
+}
+
 // ============================================================================
 // MISSION HANDLERS
 // ============================================================================

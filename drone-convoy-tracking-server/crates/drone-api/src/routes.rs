@@ -53,6 +53,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/v1/mission/resume", post(handlers::resume_mission))
         .route("/api/v1/mission/abort", post(handlers::abort_mission))
         .route("/api/v1/mission/waypoints", get(handlers::get_waypoints))
+        .route("/api/v1/mission/reset", post(handlers::reset_simulation))
         
         // CV Tracking API
         .route("/api/v1/tracking", get(handlers::get_tracking_results))

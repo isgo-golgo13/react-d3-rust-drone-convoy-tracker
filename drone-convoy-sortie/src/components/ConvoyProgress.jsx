@@ -54,7 +54,7 @@ const ConvoyProgress = ({ drones, waypoints }) => {
       if (drone.status === 'offline') return;
 
       const droneX = xScale(drone.currentWaypoint + drone.progress);
-      const droneY = margin.top + (index * 10) % (height - margin.top - margin.bottom);
+      const droneY = margin.top + (index * ((height - margin.top - margin.bottom) / drones.length));
 
       // Progress line
       svg.append("line")

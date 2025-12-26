@@ -122,41 +122,33 @@ async fn handle_connection(
 
     // Forward broadcast messages to this client
     loop {
-        tokio::select! {
-            // Receive from broadcast channel
-            result = broadcast_rx.recv() => {
-                match result {
-                    Ok(event) => {
-                        let msg = ServerMessage::Event(event);
-                        match serde_json::to_string(&msg) {
-                            Ok(json) => {
-                                if let Err(e) = ws_sender.send(Message::Text(json.into())).await {
-                                    error!("Failed to send to client {}: {}", client_id, e);
-                                    break;
-                                }
-                            }
-                            Err(e) => {
-                                error!("Failed to serialize event: {}", e);
-                            }
+        match broadcast_rx.recv().await {
+            Ok(event) => {
+                let msg = ServerMessage::Event(event);
+                match serde_json::to_string(&msg) {
+                    Ok(json) => {
+                        if let Err(e) = ws_sender.send(Message::Text(json.into())).await {
+                            error!("Failed to send to client {}: {}", client_id, e);
+                            break;
                         }
                     }
-                    Err(broadcast::error::RecvError::Lagged(n)) => {
-                        warn!("Client {} lagged by {} messages", client_id, n);
-                    }
-                    Err(broadcast::error::RecvError::Closed) => {
-                        info!("Broadcast channel closed");
-                        break;
+                    Err(e) => {
+                        error!("Failed to serialize event: {}", e);
                     }
                 }
             }
-            // Check if incoming handler finished (client disconnected)
-            _ = &mut Box::pin(async { incoming_handle.is_finished() }) => {
-                if incoming_handle.is_finished() {
-                    break;
-                }
+            Err(broadcast::error::RecvError::Lagged(n)) => {
+                warn!("Client {} lagged by {} messages", client_id, n);
+            }
+            Err(broadcast::error::RecvError::Closed) => {
+                info!("Broadcast channel closed");
+                break;
             }
         }
     }
+
+    // Cancel incoming handler
+    incoming_handle.abort();
 
     // Cleanup
     hub.unregister_client(client_id);

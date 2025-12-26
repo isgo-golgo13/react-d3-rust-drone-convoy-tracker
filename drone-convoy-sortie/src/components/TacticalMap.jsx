@@ -162,43 +162,61 @@ const TacticalMap = ({ drones, selectedDrone, onDroneSelect }) => {
 
   // Update drone positions
   useEffect(() => {
+    console.log('TacticalMap useEffect triggered, drones:', drones?.length);
     if (!mapInstanceRef.current || !window.google || !drones) return;
 
-    // Clear existing drone markers
-    Object.values(droneMarkersRef.current).forEach(marker => {
-      if (marker) marker.setMap(null);
-    });
-    droneMarkersRef.current = {};
-
-    // Add drone markers
+    // Update existing markers or create new ones
     drones.forEach(drone => {
-      const currentWP = WAYPOINTS[drone.currentWaypoint];
-      const nextWP = WAYPOINTS[Math.min(drone.currentWaypoint + 1, WAYPOINTS.length - 1)];
-      
-      if (currentWP && nextWP) {
-        const lat = currentWP.lat + (nextWP.lat - currentWP.lat) * drone.progress;
-        const lng = currentWP.lng + (nextWP.lng - currentWP.lng) * drone.progress;
-        
-        // Calculate heading if geometry library is available
-        let heading = 0;
-        if (window.google.maps.geometry && window.google.maps.geometry.spherical) {
-          heading = window.google.maps.geometry.spherical.computeHeading(
-            new window.google.maps.LatLng(currentWP.lat, currentWP.lng),
-            new window.google.maps.LatLng(nextWP.lat, nextWP.lng)
-          );
+      console.log('Processing drone:', drone.id, 'lat:', drone.lat, 'lng:', drone.lng);
+      // Use direct lat/lng from backend if available, otherwise interpolate from waypoints
+      let lat, lng;
+      if (drone.lat && drone.lng && drone.lat !== 0) {
+        // LIVE mode: use backend coordinates
+        lat = drone.lat;
+        lng = drone.lng;
+      } else {
+        // SIMULATION mode: interpolate from waypoints
+        const currentWP = WAYPOINTS[drone.currentWaypoint];
+        const nextWP = WAYPOINTS[Math.min(drone.currentWaypoint + 1, WAYPOINTS.length - 1)];
+        if (currentWP && nextWP) {
+          lat = currentWP.lat + (nextWP.lat - currentWP.lat) * drone.progress;
+          lng = currentWP.lng + (nextWP.lng - currentWP.lng) * drone.progress;
+        } else {
+          return; // Skip if no valid position
         }
+      }
 
-        const droneIcon = {
-          path: 'M362.7 19.3L314.3 67.7 444.3 197.7l48.4-48.4c25-25 25-65.5 0-90.5L453.3 19.3c-25-25-65.5-25-90.5 0zm-71 71L58.6 323.5c-10.4 10.4-18 23.3-22.2 37.4L1 481.2C-1.5 489.7 .8 498.8 7 505s15.3 8.5 23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L421.7 220.3 291.7 90.3z',
-          fillColor: drone.status === 'online' ? '#00ff00' : '#ff0000',
-          fillOpacity: 0.9,
-          strokeColor: '#ffffff',
-          strokeWeight: 1,
-          scale: 0.04,
-          rotation: heading,
-          anchor: new window.google.maps.Point(256, 256)
-        };
+      // Get waypoints for heading calculation
+      const currentWP = WAYPOINTS[drone.currentWaypoint] || WAYPOINTS[0];
+      const nextWP = WAYPOINTS[Math.min((drone.currentWaypoint || 0) + 1, WAYPOINTS.length - 1)];
+      
+      // Calculate heading if geometry library is available
+      let heading = 0;
+      if (window.google.maps.geometry && window.google.maps.geometry.spherical && currentWP && nextWP) {
+        heading = window.google.maps.geometry.spherical.computeHeading(
+          new window.google.maps.LatLng(currentWP.lat, currentWP.lng),
+          new window.google.maps.LatLng(nextWP.lat, nextWP.lng)
+        );
+      }
 
+      const droneIcon = {
+        path: 'M362.7 19.3L314.3 67.7 444.3 197.7l48.4-48.4c25-25 25-65.5 0-90.5L453.3 19.3c-25-25-65.5-25-90.5 0zm-71 71L58.6 323.5c-10.4 10.4-18 23.3-22.2 37.4L1 481.2C-1.5 489.7 .8 498.8 7 505s15.3 8.5 23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L421.7 220.3 291.7 90.3z',
+        fillColor: drone.status === 'online' ? '#00ff00' : '#ff0000',
+        fillOpacity: 0.9,
+        strokeColor: '#ffffff',
+        strokeWeight: 1,
+        scale: 0.04,
+        rotation: heading,
+        anchor: new window.google.maps.Point(256, 256)
+      };
+
+      // Check if marker already exists
+      if (droneMarkersRef.current[drone.id]) {
+        // Update existing marker position
+        droneMarkersRef.current[drone.id].setPosition({ lat, lng });
+        droneMarkersRef.current[drone.id].setIcon(droneIcon);
+      } else {
+        // Create new marker
         const marker = new window.google.maps.Marker({
           position: { lat, lng },
           map: mapInstanceRef.current,
@@ -224,9 +242,9 @@ const TacticalMap = ({ drones, selectedDrone, onDroneSelect }) => {
                 <span style="color: ${drone.status === 'online' ? '#00ff00' : '#ff0000'};">
                   STATUS: ${drone.status.toUpperCase()}
                 </span><br/>
-                <span style="color: #0088ff;">ALT: ${drone.altitude.toFixed(0)}m</span><br/>
-                <span style="color: #0088ff;">SPD: ${drone.speed.toFixed(0)} km/h</span><br/>
-                <span style="color: #ffaa00;">BAT: ${drone.battery.toFixed(0)}%</span><br/>
+                <span style="color: #0088ff;">ALT: ${drone.altitude?.toFixed(0) || 0}m</span><br/>
+                <span style="color: #0088ff;">SPD: ${drone.speed?.toFixed(0) || 0} km/h</span><br/>
+                <span style="color: #ffaa00;">BAT: ${drone.battery?.toFixed(0) || 0}%</span><br/>
                 <span style="color: #888;">LAT: ${lat.toFixed(4)}</span><br/>
                 <span style="color: #888;">LNG: ${lng.toFixed(4)}</span>
               </div>
@@ -243,12 +261,17 @@ const TacticalMap = ({ drones, selectedDrone, onDroneSelect }) => {
         });
 
         droneMarkersRef.current[drone.id] = marker;
-
-        // Update drone's lat/lng
-        drone.lat = lat;
-        drone.lng = lng;
       }
     });
+
+    // Remove markers for drones that no longer exist
+    Object.keys(droneMarkersRef.current).forEach(droneId => {
+      if (!drones.find(d => d.id === droneId)) {
+        droneMarkersRef.current[droneId].setMap(null);
+        delete droneMarkersRef.current[droneId];
+      }
+    });
+
   }, [drones, selectedDrone, onDroneSelect]);
 
   // Loading state
