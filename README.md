@@ -189,6 +189,8 @@ New connection status indicator in header:
 - **[LIVE]** button - Switch to backend mode
 - **[SIM]** button - Switch to simulation mode
 
+
+
 ## Testing
 
 ### Test Simulation Mode (No Backend)
@@ -220,36 +222,7 @@ npm run dev
 # Drones receive real-time updates from backend
 ```
 
-### Killing PID Rust Server Process (Full-Restarts)
 
-```shell
-ps aux | grep drone-api
-kill -9 <PID>
-```
-
-
-
-## Component Compatibility
-
-The new hook provides the **exact same interface** as before:
-
-| Property/Method | Type | Same as Before |
-|-----------------|------|----------------|
-| `drones` | Array | Same shape |
-| `isSimulating` | boolean | Same |
-| `simulationSpeed` | number | Same |
-| `startSimulation` | function | Same |
-| `stopSimulation` | function | Same |
-| `toggleSimulation` | function | Same |
-| `resetSimulation` | function | Same |
-| `setSimulationSpeed` | function | Same |
-
-New additions:
-- `mode` - Connection mode ('live', 'simulation', 'connecting')
-- `isConnected` - WebSocket connection status
-- `error` - Error message if any
-- `switchToLive` - Connect to backend
-- `switchToSimulation` - Use local simulation
 
 ## Drone Data Shape
 
@@ -274,7 +247,35 @@ Same format your components already expect:
 }
 ```
 
-## Troubleshooting
+
+## Drone Tracking ScyllaDB CQL Tables
+
+The following are the ScyllaDB CQL Schema Tables for the tracking service Rust server connects/reads/writes to through Redis Cache.
+
+- **drone_telemetry** -  time-series position data (empty - simulation doesn't write here)
+- **drone_registry** - drone master list (has 3 sample drones)
+- **missions** - mission config (has 1 sample mission)
+- **waypoint_events** - waypoint arrivals (empty)
+- **cv_tracking** - OpenCV data (empty)
+- **alerts** - system alerts (empty)
+- **p2p_metrics** - network metrics (empty)
+
+The following CQL tables are provided for view executing the following Docker exec command.
+
+```shell
+docker exec -it scylla-node1 cqlsh -e "USE drone_convoy; DESCRIBE TABLES;"
+```
+The CQL shell command shows.
+```shell
+alerts       drone_registry   missions     waypoint_events
+cv_tracking  drone_telemetry  p2p_metrics
+```
+
+
+
+
+
+## Runtime Resolution Tracking
 
 ### Stuck on "CONNECTING"
 - Check backend is running: `curl http://localhost:3000/health`
@@ -291,3 +292,13 @@ Same format your components already expect:
 ### Drones don't move in LIVE mode
 - Backend simulation runs by default
 - Check WebSocket messages in DevTools → Network → WS tab
+
+
+
+## Future Extensions 
+
+
+- Add DB writes to persist telemetry
+- Add Redis for caching/pub-sub
+- Enable OpenCV on Linux VM 
+- Leptos frontend rewrite (100% Rust)
