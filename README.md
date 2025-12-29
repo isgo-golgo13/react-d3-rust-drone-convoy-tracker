@@ -178,7 +178,7 @@ New connection status indicator in header:
 
 
 
-## Testing
+## Execution Modes (UI Only, UI w/ Rust Server Side)
 
 ### Test Simulation Mode (No Backend)
 ```bash
