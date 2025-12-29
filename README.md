@@ -252,10 +252,17 @@ The following CQL tables are provided for view executing the following Docker ex
 ```shell
 docker exec -it scylla-node1 cqlsh -e "USE drone_convoy; DESCRIBE TABLES;"
 ```
+
 The CQL shell command shows.
+
 ```shell
-alerts       drone_registry   missions     waypoint_events
-cv_tracking  drone_telemetry  p2p_metrics
+alerts
+drone_registry   
+missions     
+waypoint_events
+cv_tracking  
+drone_telemetry  
+p2p_metrics
 ```
 
 
