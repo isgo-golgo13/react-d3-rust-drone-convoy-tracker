@@ -82,13 +82,9 @@ async fn main() -> anyhow::Result<()> {
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     
-    // axum::serve(listener, app)
-    //     .with_graceful_shutdown(shutdown_signal())
-    //     .await?;
-
     axum::serve(listener, app.into_make_service())
-    .with_graceful_shutdown(shutdown_signal())
-    .await?;
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
 
     info!("🛑 Server shutdown complete");
     Ok(())
@@ -99,7 +95,6 @@ fn init_logging() {
     let filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| {
             EnvFilter::new("info,drone_api=debug,drone_websocket=debug")
-            //EnvFilter::new("info,drone_api=debug,drone_cv=debug,drone_websocket=debug")
         });
 
     tracing_subscriber::registry()
@@ -148,19 +143,19 @@ async fn run_simulation(state: AppState) {
 
     // Afghanistan waypoints (same as frontend)
     let waypoints = vec![
-    ("Base Alpha", 34.5553, 69.2075),
-    ("Checkpoint Bravo", 34.5623, 69.2145),
-    ("Outpost Charlie", 34.5693, 69.2215),
-    ("Firebase Delta", 34.5763, 69.2285),
-    ("Sector Echo", 34.5833, 69.2355),
-    ("Point Foxtrot", 34.5903, 69.2425),
-    ("Zone Golf", 34.5973, 69.2495),
-    ("Camp Hotel", 34.6043, 69.2565),
-    ("Station India", 34.6113, 69.2635),
-    ("Forward Juliet", 34.6183, 69.2705),
-    ("Base Kilo", 34.6253, 69.2775),
-    ("Terminal Lima", 34.6323, 69.2845),
-];
+        ("Base Alpha", 34.5553, 69.2075),
+        ("Checkpoint Bravo", 34.5623, 69.2145),
+        ("Outpost Charlie", 34.5693, 69.2215),
+        ("Firebase Delta", 34.5763, 69.2285),
+        ("Sector Echo", 34.5833, 69.2355),
+        ("Point Foxtrot", 34.5903, 69.2425),
+        ("Zone Golf", 34.5973, 69.2495),
+        ("Camp Hotel", 34.6043, 69.2565),
+        ("Station India", 34.6113, 69.2635),
+        ("Forward Juliet", 34.6183, 69.2705),
+        ("Base Kilo", 34.6253, 69.2775),
+        ("Terminal Lima", 34.6323, 69.2845),
+    ];
 
     // Initialize 12 drones
     let mut drones: Vec<SimDrone> = (1..=12)
@@ -171,6 +166,7 @@ async fn run_simulation(state: AppState) {
             speed: 0.8 + (i as f64 * 0.02), // Slight speed variation
             battery: 100,
             fuel: 100,
+            completed: false,
         })
         .collect();
 
@@ -188,23 +184,38 @@ async fn run_simulation(state: AppState) {
                 drone.progress = 0.0;
                 drone.battery = 100;
                 drone.fuel = 100;
+                drone.completed = false;
             }
             state.reset_flag.store(false, std::sync::atomic::Ordering::SeqCst);
         }
 
         for drone in &mut drones {
+            // Skip completed drones - they stay at the end
+            if drone.completed {
+                continue;
+            }
+
             // Update progress
             drone.progress += speed_multiplier * drone.speed;
 
             // Check waypoint transition
             if drone.progress >= 1.0 {
                 drone.progress = 0.0;
-                drone.waypoint_index = (drone.waypoint_index + 1) % waypoints.len();
+                drone.waypoint_index += 1;
+                
+                // Check if reached final waypoint
+                if drone.waypoint_index >= waypoints.len() - 1 {
+                    drone.waypoint_index = waypoints.len() - 1;
+                    drone.progress = 1.0;
+                    drone.completed = true;
+                    info!("🏁 Drone {} completed mission!", drone.id.0);
+                }
             }
 
             // Interpolate position between waypoints
             let current_wp = &waypoints[drone.waypoint_index];
-            let next_wp = &waypoints[(drone.waypoint_index + 1) % waypoints.len()];
+            let next_idx = std::cmp::min(drone.waypoint_index + 1, waypoints.len() - 1);
+            let next_wp = &waypoints[next_idx];
 
             let lat = current_wp.1 + (next_wp.1 - current_wp.1) * drone.progress;
             let lng = current_wp.2 + (next_wp.2 - current_wp.2) * drone.progress;
@@ -213,9 +224,11 @@ async fn run_simulation(state: AppState) {
             // Calculate heading
             let heading = calculate_bearing(current_wp.1, current_wp.2, next_wp.1, next_wp.2);
 
-            // Drain battery/fuel slowly
-            drone.battery = (drone.battery as f64 - 0.001).max(20.0) as u8;
-            drone.fuel = (drone.fuel as f64 - 0.002).max(15.0) as u8;
+            // Drain battery/fuel slowly (only if not completed)
+            if !drone.completed {
+                drone.battery = (drone.battery as f64 - 0.001).max(20.0) as u8;
+                drone.fuel = (drone.fuel as f64 - 0.002).max(15.0) as u8;
+            }
 
             // Create position update
             let position = GeoPosition::new(lat, lng, alt);
@@ -223,7 +236,7 @@ async fn run_simulation(state: AppState) {
                 battery_level: drone.battery,
                 fuel_level: drone.fuel,
                 system_health: 95 + (drone.id.0.len() % 5) as u8,
-                speed: 350.0 + (drone.speed * 50.0),
+                speed: if drone.completed { 0.0 } else { 350.0 + (drone.speed * 50.0) },
                 heading,
                 signal_strength: 90 + (drone.waypoint_index % 10) as u8,
                 temperature: 42.0,
@@ -250,6 +263,7 @@ struct SimDrone {
     speed: f64,
     battery: u8,
     fuel: u8,
+    completed: bool,
 }
 
 /// Calculate bearing between two coordinates

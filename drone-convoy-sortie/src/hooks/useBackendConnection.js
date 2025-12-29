@@ -62,8 +62,12 @@ function calculateWaypointFromPosition(lat, lng) {
   return { waypoint: closestWaypoint, progress: 1 };
 }
 
-
-
+/**
+ * Check if drone has completed the mission
+ */
+function isDroneCompleted(drone) {
+  return drone.currentWaypoint >= WAYPOINTS.length - 1 && drone.progress >= 0.95;
+}
 
 /**
  * Connection modes
@@ -79,7 +83,7 @@ export const ConnectionMode = {
  * Transform backend drone to frontend format
  */
 function transformBackendDrone(backendDrone) {
-  return {
+  const drone = {
     id: backendDrone.id || backendDrone.drone_id,
     callsign: backendDrone.callsign || backendDrone.name || backendDrone.id,
     currentWaypoint: backendDrone.waypoint_index ?? backendDrone.currentWaypoint ?? 0,
@@ -95,6 +99,11 @@ function transformBackendDrone(backendDrone) {
     lat: backendDrone.position?.latitude ?? backendDrone.lat ?? 0,
     lng: backendDrone.position?.longitude ?? backendDrone.lng ?? 0,
   };
+  
+  // Add completed status
+  drone.completed = isDroneCompleted(drone);
+  
+  return drone;
 }
 
 export function useBackendConnection() {
@@ -129,6 +138,7 @@ export function useBackendConnection() {
       return INITIAL_DRONES.map(drone => ({
         ...drone,
         lastUpdate: new Date(),
+        completed: false,
       }));
     }
 
@@ -148,7 +158,8 @@ export function useBackendConnection() {
         armament: Math.floor(Math.random() * 8) + 4,
         lastUpdate: new Date(),
         lat: 0,
-        lng: 0
+        lng: 0,
+        completed: false,
       });
     }
     return generatedDrones;
@@ -192,51 +203,54 @@ export function useBackendConnection() {
    * Handle WebSocket message
    */
   const handleWebSocketMessage = useCallback((event) => {
-  try {
-    const data = typeof event === 'string' ? JSON.parse(event) : 
-                 event.data ? JSON.parse(event.data) : event;
-    
-    // Skip non-Event messages (like InitialState)
-    if (data.type !== 'Event') return;
-    
-    const eventPayload = data.payload;
-    
-    if (eventPayload.event_type === 'DRONE_POSITION_UPDATED') {
-      const droneData = eventPayload.payload.data;
-      const droneId = droneData.drone_id;
+    try {
+      const data = typeof event === 'string' ? JSON.parse(event) : 
+                   event.data ? JSON.parse(event.data) : event;
+      
+      // Skip non-Event messages (like InitialState)
+      if (data.type !== 'Event') return;
+      
+      const eventPayload = data.payload;
+      
+      if (eventPayload.event_type === 'DRONE_POSITION_UPDATED') {
+        const droneData = eventPayload.payload.data;
+        const droneId = droneData.drone_id;
 
-      setDrones(prev => {
-        const newDrones = prev.map(drone => {
-          if (drone.id !== droneId) return drone;
+        setDrones(prev => {
+          const newDrones = prev.map(drone => {
+            if (drone.id !== droneId) return drone;
 
-          const newLat = droneData.position.latitude;
-          const newLng = droneData.position.longitude;
-          
-          // Calculate waypoint progress from position
-          const waypointInfo = calculateWaypointFromPosition(newLat, newLng);
+            const newLat = droneData.position.latitude;
+            const newLng = droneData.position.longitude;
+            
+            // Calculate waypoint progress from position
+            const waypointInfo = calculateWaypointFromPosition(newLat, newLng);
+            
+            // Check if completed
+            const completed = waypointInfo.waypoint >= WAYPOINTS.length - 1 && waypointInfo.progress >= 0.95;
 
-          return {
-            ...drone,
-            lat: newLat,
-            lng: newLng,
-            altitude: droneData.position.altitude,
-            battery: droneData.telemetry.battery_level,
-            fuel: droneData.telemetry.fuel_level,
-            speed: droneData.telemetry.speed,
-            systemHealth: droneData.telemetry.system_health,
-            currentWaypoint: waypointInfo.waypoint,
-            progress: waypointInfo.progress,
-            lastUpdate: new Date(),
-          };
+            return {
+              ...drone,
+              lat: newLat,
+              lng: newLng,
+              altitude: droneData.position.altitude,
+              battery: droneData.telemetry.battery_level,
+              fuel: droneData.telemetry.fuel_level,
+              speed: droneData.telemetry.speed,
+              systemHealth: droneData.telemetry.system_health,
+              currentWaypoint: waypointInfo.waypoint,
+              progress: waypointInfo.progress,
+              completed,
+              lastUpdate: new Date(),
+            };
+          });
+          return newDrones;
         });
-        return newDrones;
-      });
+      }
+    } catch (err) {
+      console.error('Failed to parse WebSocket message:', err);
     }
-  } catch (err) {
-    console.error('Failed to parse WebSocket message:', err);
-  }
-}, []);
-
+  }, []);
 
   /**
    * Connect to WebSocket
@@ -298,78 +312,52 @@ export function useBackendConnection() {
   /**
    * Run simulation update
    */
-  // const runSimulationUpdate = useCallback(() => {
-  //   setDrones(prevDrones => 
-  //     prevDrones.map(drone => {
-  //       if (drone.status === 'offline') return drone;
-
-  //       let newProgress = drone.progress + (0.01 * simulationSpeed);
-  //       let newWaypoint = drone.currentWaypoint;
-
-  //       if (newProgress >= 1) {
-  //         newProgress = 0;
-  //         newWaypoint = Math.min(drone.currentWaypoint + 1, WAYPOINTS.length - 1);
-  //       }
-
-  //       const batteryDrain = 0.1 * simulationSpeed;
-  //       const fuelDrain = 0.15 * simulationSpeed;
-
-  //       return {
-  //         ...drone,
-  //         progress: newProgress,
-  //         currentWaypoint: newWaypoint,
-  //         battery: Math.max(0, drone.battery - batteryDrain),
-  //         fuel: Math.max(0, drone.fuel - fuelDrain),
-  //         speed: 45 + Math.random() * 15,
-  //         altitude: 140 + Math.random() * 20,
-  //         systemHealth: Math.max(70, drone.systemHealth - Math.random() * 0.1),
-  //         lastUpdate: new Date(),
-  //       };
-  //     })
-  //   );
-  // }, [simulationSpeed]);
   const runSimulationUpdate = useCallback(() => {
-  setDrones(prevDrones => 
-    prevDrones.map(drone => {
-      if (drone.status === 'offline') return drone;
+    setDrones(prevDrones => 
+      prevDrones.map(drone => {
+        // Skip offline drones
+        if (drone.status === 'offline') return drone;
+        
+        // Skip completed drones - they stay at the end
+        if (drone.completed) return drone;
 
-      let newProgress = drone.progress + (0.01 * simulationSpeed);
-      let newWaypoint = drone.currentWaypoint;
+        let newProgress = drone.progress + (0.01 * simulationSpeed);
+        let newWaypoint = drone.currentWaypoint;
 
-      if (newProgress >= 1) {
-        newProgress = 0;
-        newWaypoint = Math.min(drone.currentWaypoint + 1, WAYPOINTS.length - 1);
-      }
+        if (newProgress >= 1) {
+          newProgress = 0;
+          newWaypoint = Math.min(drone.currentWaypoint + 1, WAYPOINTS.length - 1);
+        }
 
-      // Calculate lat/lng from waypoints for SIM mode
-      const currentWP = WAYPOINTS[newWaypoint];
-      const nextWP = WAYPOINTS[Math.min(newWaypoint + 1, WAYPOINTS.length - 1)];
-      const lat = currentWP.lat + (nextWP.lat - currentWP.lat) * newProgress;
-      const lng = currentWP.lng + (nextWP.lng - currentWP.lng) * newProgress;
+        // Calculate lat/lng from waypoints for SIM mode
+        const currentWP = WAYPOINTS[newWaypoint];
+        const nextWP = WAYPOINTS[Math.min(newWaypoint + 1, WAYPOINTS.length - 1)];
+        const lat = currentWP.lat + (nextWP.lat - currentWP.lat) * newProgress;
+        const lng = currentWP.lng + (nextWP.lng - currentWP.lng) * newProgress;
 
-      const batteryDrain = 0.1 * simulationSpeed;
-      const fuelDrain = 0.15 * simulationSpeed;
+        const batteryDrain = 0.1 * simulationSpeed;
+        const fuelDrain = 0.15 * simulationSpeed;
+        
+        // Check if now completed
+        const completed = newWaypoint >= WAYPOINTS.length - 1 && newProgress >= 0.95;
 
-      return {
-        ...drone,
-        progress: newProgress,
-        currentWaypoint: newWaypoint,
-        lat,
-        lng,
-        // battery: Math.max(0, drone.battery - batteryDrain),
-        // fuel: Math.max(0, drone.fuel - fuelDrain),
-        battery: Math.max(20, drone.battery - batteryDrain),
-        fuel: Math.max(15, drone.fuel - fuelDrain),
-        speed: 45 + Math.random() * 15,
-        altitude: 140 + Math.random() * 20,
-        systemHealth: Math.max(70, drone.systemHealth - Math.random() * 0.1),
-        lastUpdate: new Date(),
-      };
-    })
-  );
-}, [simulationSpeed]);
-
-
+        return {
+          ...drone,
+          progress: newProgress,
+          currentWaypoint: newWaypoint,
+          lat,
+          lng,
+          battery: Math.max(20, drone.battery - batteryDrain),
+          fuel: Math.max(15, drone.fuel - fuelDrain),
+          speed: 45 + Math.random() * 15,
+          altitude: 140 + Math.random() * 20,
+          systemHealth: Math.max(70, drone.systemHealth - Math.random() * 0.1),
+          completed,
+          lastUpdate: new Date(),
+        };
+      })
+    );
+  }, [simulationSpeed]);
 
   /**
    * Simulation controls
@@ -386,38 +374,34 @@ export function useBackendConnection() {
     setIsSimulating(prev => !prev);
   }, []);
 
-  // const resetSimulation = useCallback(() => {
-  //   setIsSimulating(false);
-  //   setDrones(initializeSimulationDrones());
-  // }, [initializeSimulationDrones]);
-
-
   const resetSimulation = useCallback(async () => {
-  setIsSimulating(false);
-  
-  // Reset all drones to starting position
-  setDrones(prev => prev.map(drone => ({
-    ...drone,
-    currentWaypoint: 0,
-    progress: 0,
-    lat: WAYPOINTS[0].lat,
-    lng: WAYPOINTS[0].lng,
-    battery: 100,
-    fuel: 100,
-    systemHealth: 95 + Math.random() * 5,
-    status: drone.status === 'offline' ? 'offline' : 'online',
-    lastUpdate: new Date(),
-  })));
+    setIsSimulating(false);
+    
+    // Reset all drones to starting position
+    setDrones(prev => prev.map(drone => ({
+      ...drone,
+      currentWaypoint: 0,
+      progress: 0,
+      lat: WAYPOINTS[0].lat,
+      lng: WAYPOINTS[0].lng,
+      battery: 100,
+      fuel: 100,
+      systemHealth: 95 + Math.random() * 5,
+      status: drone.status === 'offline' ? 'offline' : 'online',
+      completed: false,
+      lastUpdate: new Date(),
+    })));
 
-  // If in LIVE mode, also reset backend
-  if (mode === ConnectionMode.LIVE) {
-    try {
-      await fetch(`${API_URL}/api/v1/mission/reset`, { method: 'POST' });
-    } catch (err) {
-      console.warn('Failed to reset backend simulation:', err);
+    // If in LIVE mode, also reset backend
+    if (mode === ConnectionMode.LIVE) {
+      try {
+        await fetch(`${API_URL}/api/v1/mission/reset`, { method: 'POST' });
+      } catch (err) {
+        console.warn('Failed to reset backend simulation:', err);
+      }
     }
-  }
-}, [mode]);
+  }, [mode]);
+
   /**
    * Mode switching
    */
@@ -453,7 +437,7 @@ export function useBackendConnection() {
       const isHealthy = await checkBackendHealth();
       
       if (isHealthy) {
-        console.log('✅ Backend is healthy, switching to LIVE mode');
+        console.log('Backend is healthy, switching to LIVE mode');
         const backendDrones = await fetchDrones();
         if (backendDrones && backendDrones.length > 0) {
           setDrones(backendDrones);

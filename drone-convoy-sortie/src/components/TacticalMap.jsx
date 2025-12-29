@@ -135,6 +135,53 @@ const TacticalMap = ({ drones, selectedDrone, onDroneSelect }) => {
         });
       });
 
+      // Add checkered flag at final waypoint (destination)
+      const finalWaypoint = WAYPOINTS[WAYPOINTS.length - 1];
+      const flagMarker = new window.google.maps.Marker({
+        position: { lat: finalWaypoint.lat, lng: finalWaypoint.lng },
+        map: map,
+        icon: {
+          // SVG path for checkered flag on pole
+          path: "M 0 0 L 0 -40 M 0 -40 L 20 -40 L 20 -32 L 15 -32 L 15 -36 L 10 -36 L 10 -32 L 5 -32 L 5 -36 L 0 -36 L 0 -28 L 5 -28 L 5 -32 L 10 -32 L 10 -28 L 15 -28 L 15 -32 L 20 -32 L 20 -24 L 0 -24 Z",
+          fillColor: "#ffffff",
+          fillOpacity: 1,
+          strokeColor: "#000000",
+          strokeWeight: 2,
+          scale: 1.2,
+          anchor: new window.google.maps.Point(0, 0)
+        },
+        title: "🏁 DESTINATION - " + finalWaypoint.name,
+        zIndex: 15
+      });
+
+      // Info window for destination flag
+      const flagInfoWindow = new window.google.maps.InfoWindow({
+        content: `
+          <div style="
+            background: rgba(0, 0, 0, 0.95);
+            color: #00ff00;
+            padding: 12px;
+            border: 2px solid #ff0000;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            min-width: 180px;
+          ">
+            <strong style="font-size: 14px; color: #ff0000;">🏁 MISSION DESTINATION</strong><br/>
+            <div style="margin-top: 8px;">
+              <span style="color: #ffffff;">${finalWaypoint.name}</span><br/>
+              <span style="color: #0088ff;">FINAL WAYPOINT</span><br/>
+              <span style="color: #888;">LAT: ${finalWaypoint.lat.toFixed(4)}</span><br/>
+              <span style="color: #888;">LNG: ${finalWaypoint.lng.toFixed(4)}</span>
+            </div>
+          </div>
+        `,
+        maxWidth: 220
+      });
+
+      flagMarker.addListener('click', () => {
+        flagInfoWindow.open(map, flagMarker);
+      });
+
       // Draw route path
       const routePath = new window.google.maps.Polyline({
         path: WAYPOINTS.map(wp => ({ lat: wp.lat, lng: wp.lng })),

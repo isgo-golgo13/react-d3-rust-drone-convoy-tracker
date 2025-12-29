@@ -56,13 +56,23 @@ const ConvoyProgress = ({ drones, waypoints }) => {
       const droneX = xScale(drone.currentWaypoint + drone.progress);
       const droneY = margin.top + (index * ((height - margin.top - margin.bottom) / drones.length));
 
+      // Determine line color based on status
+      let lineColor;
+      if (drone.completed) {
+        lineColor = "#ff0000"; // Red for completed
+      } else if (drone.status === 'warning') {
+        lineColor = "#ffaa00"; // Amber for warning
+      } else {
+        lineColor = "#00ff00"; // Green for online
+      }
+
       // Progress line
       svg.append("line")
         .attr("x1", xScale(0))
         .attr("x2", droneX)
         .attr("y1", droneY)
         .attr("y2", droneY)
-        .attr("stroke", drone.status === 'online' ? "#00ff00" : "#ffaa00")
+        .attr("stroke", lineColor)
         .attr("stroke-width", 2)
         .attr("opacity", 0.6);
 
@@ -71,7 +81,7 @@ const ConvoyProgress = ({ drones, waypoints }) => {
         .attr("cx", droneX)
         .attr("cy", droneY)
         .attr("r", 4)
-        .attr("fill", drone.status === 'online' ? "#00ff00" : "#ffaa00")
+        .attr("fill", lineColor)
         .attr("stroke", "#fff")
         .attr("stroke-width", 1);
 
@@ -82,6 +92,15 @@ const ConvoyProgress = ({ drones, waypoints }) => {
         .attr("font-size", "9px")
         .attr("fill", "#888")
         .text(drone.id);
+
+      // Checkered flag for completed drones
+      if (drone.completed) {
+        svg.append("text")
+          .attr("x", droneX + 50)
+          .attr("y", droneY + 4)
+          .attr("font-size", "12px")
+          .text("🏁");
+      }
     });
 
     // Title
