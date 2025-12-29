@@ -261,27 +261,6 @@ cv_tracking  drone_telemetry  p2p_metrics
 
 
 
-
-## Runtime Resolution Tracking
-
-### Stuck on "CONNECTING"
-- Check backend is running: `curl http://localhost:3000/health`
-- Check `.env.local` has correct URLs
-
-### Always shows "SIM" even with backend running
-- Check CORS on backend allows `http://localhost:5173`
-- Check browser console for errors
-
-### WebSocket disconnects frequently
-- Backend may be crashing - check logs: `cargo run --bin drone-api`
-- Network issues - check firewall isn't blocking port 9090
-
-### Drones don't move in LIVE mode
-- Backend simulation runs by default
-- Check WebSocket messages in DevTools → Network → WS tab
-
-
-
 ## Future Extensions 
 
 
