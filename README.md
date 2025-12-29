@@ -95,33 +95,23 @@ make quick-start  # http://localhost:8080
 
 
 
-## Run the Complete System
+## 0penCV Dependencies and Features of Tracking System Install
 
-# MacOS
+**Non-Linux (Unix)**
 brew install opencv llvm
 
-# Ubuntu/Debian  
+**Linux (Ubuntu)**  
 sudo apt-get install libopencv-dev clang libclang-dev
 
-# Or skip OpenCV for now by commenting it out in Cargo.toml
+**Or** Skip OpenCV commenting it out in Cargo.toml
 
-```bash
-cd drone-convoy-tracking-server
 
-# Build and start everything
-make docker-up
-
-# Check status
-make docker-status
-
-# View logs
-make docker-logs
-```
 
 
 ### Test without (Rust) Server-Side
 ```shell
 cd drone-convoy-sortie
+npm install
 npm run dev
 # Shows 🟡 SIM - works exactly as before
 ```
@@ -135,20 +125,17 @@ make dev-infra
 cd drone-convoy-tracking-server && cargo run --bin drone-api
 
 # Terminal 3
-cd drone-convoy-sortie && npm run dev
+cd drone-convoy-sortie && npm install && npm run dev
 # Shows 🟢 LIVE - real-time updates from Rust
 ```
 
 
 
-# Frontend-Backend Integration v2
+## Frontend-Backend React to Rust Server-Side Integration Workflow
 
-Drop-in integration for connecting your React frontend to the Rust backend.
+The following graphic shows the React.js w/ D3.js and Google Maps API for React connected to the Rust server-side tracking system using WebSockets. The Rust server-side use of Redis Cache Server and ScyllaDB DB Cluster are **NOT** shown here.
 
-
-
-
-## Functional Workflow
+### Functional Workflow
 
 ```
 App starts
